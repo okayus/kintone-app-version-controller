@@ -13,7 +13,8 @@
     "test:ui": "vitest --ui",
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
-    "format": "prettier --write \"src/**/*.ts\""
+    "format": "prettier --write \"src/**/*.ts\"",
+    "generate-types": "kintone-dts-gen --base-url https://${KINTONE_DOMAIN} -u ${KINTONE_USERNAME} -p ${KINTONE_PASSWORD} --app-id ${KINTONE_APP_ID} -o src/types/fields.d.ts"
   },
   "keywords": [
     "kintone",
@@ -26,6 +27,7 @@
     "@kintone/dts-gen": "^6.1.0",
     "@kintone/plugin-packer": "^7.0.1",
     "@testing-library/dom": "^9.3.3",
+    "@types/deep-equal": "^1.0.2",
     "@testing-library/jest-dom": "^6.1.4",
     "@types/diff": "^5.0.7",
     "@types/jsdom": "^21.1.4",
