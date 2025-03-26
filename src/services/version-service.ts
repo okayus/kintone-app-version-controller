@@ -73,8 +73,8 @@ export class VersionService {
       
       // バージョン番号を生成
       const versionNumber = latestVersion
-        ? generateVersionNumber(latestVersion.versionNumber, 'patch')
-        : '0.1.0';
+        ? generateVersionNumber(latestVersion.versionNumber)
+        : '1';
       
       // 現在のユーザー情報（実際の実装ではkintoneから取得）
       const currentUser = {
