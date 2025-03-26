@@ -234,7 +234,7 @@ export interface SchemaComparisonResult {
  * バージョン情報
  */
 export interface VersionInfo {
-  versionNumber: string;
+  versionNumber: number;  // 数値型を維持
   createdAt: string;
   createdBy: {
     code: string;
@@ -245,6 +245,23 @@ export interface VersionInfo {
 }
 
 /**
+ * バージョン概要情報
+ * バージョン履歴一覧表示用の軽量なバージョン情報
+ */
+export interface VersionSummary {
+  versionNumber: number;  // 数値型を維持
+  createdAt: string;
+  createdBy: {
+    code: string;
+    name: string;
+  };
+  comment?: string;
+  appId: string;
+  appName: string;
+  recordId?: string;
+}
+
+/**
  * バージョン間の差分情報
  */
 export interface VersionDiff {
@@ -252,6 +269,68 @@ export interface VersionDiff {
   oldValue: any;
   newValue: any;
   changeType: 'added' | 'removed' | 'modified';
+}
+
+/**
+ * バージョン比較結果
+ */
+export interface VersionComparisonResult {
+  oldVersion: VersionInfo;
+  newVersion: VersionInfo;
+  diffs: VersionDiff[];
+  diffStats: {
+    added: number;
+    removed: number;
+    modified: number;
+    total: number;
+  };
+  diffText?: string; // テキスト形式の差分表現（オプション）
+  timestamp: string;
+}
+
+/**
+ * バージョン作成結果
+ */
+export interface VersionCreationResult {
+  version: VersionInfo;
+  recordId: string;
+  success: boolean;
+  backupTimestamp: string;
+}
+
+/**
+ * バージョン復元オプション
+ */
+export interface VersionRestoreOptions {
+  // 特定セクションのみ復元する設定
+  restoreFields?: boolean;
+  restoreLayout?: boolean;
+  restoreViews?: boolean;
+  restoreCustomize?: boolean;
+  restoreSettings?: boolean;
+  
+  // メタデータ
+  restoredBy?: {
+    code: string;
+    name: string;
+  };
+  comment?: string;
+}
+
+/**
+ * バージョン管理サービスのインターフェース
+ */
+export interface IVersionService {
+  compareAppVersions(appId: number, appDetails: AppDetail): Promise<boolean>;
+  createNewVersion(appId: number, appDetails: AppDetail, comment?: string): Promise<VersionInfo>;
+  getLatestVersion(appId: number): Promise<VersionInfo | null>;
+  getVersionHistory(appId: number, limit?: number): Promise<VersionInfo[]>;
+  getVersionSummaries(appId: number, limit?: number): Promise<VersionSummary[]>;
+  getVersionById(recordId: string): Promise<VersionInfo | null>;
+  generateDiff(oldVersion: VersionInfo, newVersion: VersionInfo): VersionDiff[];
+  compareVersions(oldVersionId: string, newVersionId: string): Promise<VersionComparisonResult>;
+  restoreVersion(versionId: string, options?: VersionRestoreOptions): Promise<VersionCreationResult>;
+  getVersionsByDateRange(appId: number, startDate: string, endDate: string): Promise<VersionInfo[]>;
 }
 
 /**
@@ -271,3 +350,15 @@ export interface ApiError {
   errors?: any[];
   id?: string;
 }
+
+/**
+ * イベントタイプ
+ */
+export const EVENT_TYPES = {
+  INDEX_SHOW: 'app.record.index.show',
+  DETAIL_SHOW: 'app.record.detail.show',
+  CREATE_SHOW: 'app.record.create.show',
+  EDIT_SHOW: 'app.record.edit.show',
+  PRINT_SHOW: 'app.record.print.show',
+  INDEX_EDIT_SHOW: 'app.record.index.edit.show'
+};

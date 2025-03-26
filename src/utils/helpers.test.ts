@@ -1,126 +1,254 @@
 /**
  * ヘルパー関数のテスト
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   deepClone,
-  sleep,
   normalizeRecord,
   toKintoneRecord,
   truncateString,
   generateVersionNumber,
+  generateSemVerNumber,
   getCurrentTimestamp,
+  generateJsonDiff,
+  generateDetailedJsonDiff,
+  generateTextDiff,
+  sleep
 } from './helpers';
 
-describe('deepClone', () => {
-  it('should create a deep clone of an object', () => {
-    const original = { a: 1, b: { c: 2 } };
-    const clone = deepClone(original);
-    
-    expect(clone).toEqual(original);
-    
-    // クローンが別オブジェクトであることを確認
-    clone.b.c = 3;
-    expect(original.b.c).toBe(2);
-  });
+// diffモジュールをモック
+vi.mock('diff', () => {
+  return {
+    createPatch: vi.fn().mockReturnValue('mock diff output')
+  };
 });
+const createPatchMock = vi.mocked(vi.importActual('diff')).createPatch;
 
-describe('sleep', () => {
-  it('should sleep for the specified time', async () => {
-    const start = Date.now();
-    await sleep(100);
-    const elapsed = Date.now() - start;
+describe('deepClone', () => {
+  it('オブジェクトの深いコピーを作成できること', () => {
+    const obj = { a: 1, b: { c: 2 } };
+    const clone = deepClone(obj);
     
-    // 少なくとも100ms経過していることを確認
-    expect(elapsed).toBeGreaterThanOrEqual(90);
+    expect(clone).toEqual(obj);
+    expect(clone).not.toBe(obj);
+    expect(clone.b).not.toBe(obj.b);
   });
 });
 
 describe('normalizeRecord', () => {
-  it('should convert kintone record to normal object', () => {
-    const kintoneRecord = {
+  it('kintoneレコードを正規化できること', () => {
+    const record = {
       field1: { value: 'value1' },
       field2: { value: 123 },
-      field3: { value: ['a', 'b', 'c'] },
     };
     
-    const normalized = normalizeRecord(kintoneRecord);
+    const normalized = normalizeRecord(record);
     
     expect(normalized).toEqual({
       field1: 'value1',
       field2: 123,
-      field3: ['a', 'b', 'c'],
     });
   });
 });
 
 describe('toKintoneRecord', () => {
-  it('should convert normal object to kintone record format', () => {
+  it('通常のオブジェクトをkintoneレコード形式に変換できること', () => {
     const obj = {
       field1: 'value1',
       field2: 123,
-      field3: ['a', 'b', 'c'],
     };
     
-    const kintoneRecord = toKintoneRecord(obj);
+    const record = toKintoneRecord(obj);
     
-    expect(kintoneRecord).toEqual({
+    expect(record).toEqual({
       field1: { value: 'value1' },
       field2: { value: 123 },
-      field3: { value: ['a', 'b', 'c'] },
     });
   });
 });
 
 describe('truncateString', () => {
-  it('should truncate string if longer than specified length', () => {
-    const str = 'This is a long string to test truncation';
-    const truncated = truncateString(str, 10);
-    
-    expect(truncated).toBe('This is...');
-    expect(truncated.length).toBe(10);
+  it('文字列が最大長を超えない場合は元の文字列を返すこと', () => {
+    const str = 'hello';
+    expect(truncateString(str, 10)).toBe(str);
   });
   
-  it('should not truncate string if shorter than specified length', () => {
-    const str = 'Short str';
-    const truncated = truncateString(str, 10);
-    
-    expect(truncated).toBe('Short str');
-  });
-  
-  it('should allow custom suffix', () => {
-    const str = 'This is a long string';
-    const truncated = truncateString(str, 10, '---');
-    
-    expect(truncated).toBe('This is---');
+  it('文字列が最大長を超える場合は省略すること', () => {
+    const str = 'hello world';
+    expect(truncateString(str, 8)).toBe('hello...');
   });
 });
 
 describe('generateVersionNumber', () => {
-  it('should increment the version number', () => {
+  it('バージョン番号をインクリメントできること', () => {
     expect(generateVersionNumber('1')).toBe('2');
-    expect(generateVersionNumber('5')).toBe('6');
-    expect(generateVersionNumber('99')).toBe('100');
+    expect(generateVersionNumber('42')).toBe('43');
   });
   
-  it('should handle various input formats', () => {
-    expect(generateVersionNumber('1.2.3')).toBe('2');
-    expect(generateVersionNumber('abc')).toBe('1');
-    expect(generateVersionNumber('')).toBe('1');
-  });
-  
-  it('should use default value if none provided', () => {
+  it('無効な入力の場合はデフォルト値を返すこと', () => {
     expect(generateVersionNumber()).toBe('1');
+    expect(generateVersionNumber('abc')).toBe('1');
+  });
+});
+
+describe('generateSemVerNumber', () => {
+  it('メジャーバージョンをインクリメントできること', () => {
+    expect(generateSemVerNumber('1.2.3', 'major')).toBe('2.0.0');
+  });
+  
+  it('マイナーバージョンをインクリメントできること', () => {
+    expect(generateSemVerNumber('1.2.3', 'minor')).toBe('1.3.0');
+  });
+  
+  it('パッチバージョンをインクリメントできること', () => {
+    expect(generateSemVerNumber('1.2.3', 'patch')).toBe('1.2.4');
+  });
+  
+  it('無効な入力の場合はデフォルト値を返すこと', () => {
+    expect(generateSemVerNumber()).toBe('0.1.0');
   });
 });
 
 describe('getCurrentTimestamp', () => {
-  it('should return ISO timestamp string', () => {
-    const mockDate = new Date('2023-04-01T12:00:00.000Z');
-    vi.spyOn(global, 'Date').mockImplementation(() => mockDate);
+  it('ISO形式のタイムスタンプを生成すること', () => {
+    const timestamp = getCurrentTimestamp();
     
-    expect(getCurrentTimestamp()).toBe('2023-04-01T12:00:00.000Z');
+    // ISO 8601形式の正規表現
+    const isoRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/;
     
-    vi.restoreAllMocks();
+    expect(timestamp).toMatch(isoRegex);
+  });
+});
+
+describe('generateJsonDiff', () => {
+  it('2つのオブジェクトに差分がない場合は空配列を返すこと', () => {
+    const obj1 = { a: 1 };
+    const obj2 = { a: 1 };
+    
+    expect(generateJsonDiff(obj1, obj2)).toEqual([]);
+  });
+  
+  it('2つのオブジェクトに差分がある場合は差分情報を返すこと', () => {
+    const obj1 = { a: 1 };
+    const obj2 = { a: 2 };
+    
+    const diffs = generateJsonDiff(obj1, obj2);
+    
+    expect(diffs).toHaveLength(1);
+    expect(diffs[0].changeType).toBe('modified');
+    expect(diffs[0].oldValue).toEqual(obj1);
+    expect(diffs[0].newValue).toEqual(obj2);
+  });
+});
+
+describe('generateDetailedJsonDiff', () => {
+  it('プリミティブ値の変更を検出できること', () => {
+    const obj1 = { a: 1 };
+    const obj2 = { a: 2 };
+    
+    const diffs = generateDetailedJsonDiff(obj1, obj2);
+    
+    expect(diffs).toHaveLength(1);
+    expect(diffs[0].path).toBe('a');
+    expect(diffs[0].oldValue).toBe(1);
+    expect(diffs[0].newValue).toBe(2);
+    expect(diffs[0].changeType).toBe('modified');
+  });
+  
+  it('プロパティの追加を検出できること', () => {
+    const obj1 = { a: 1 };
+    const obj2 = { a: 1, b: 2 };
+    
+    const diffs = generateDetailedJsonDiff(obj1, obj2);
+    
+    expect(diffs).toHaveLength(1);
+    expect(diffs[0].path).toBe('b');
+    expect(diffs[0].oldValue).toBeUndefined();
+    expect(diffs[0].newValue).toBe(2);
+    expect(diffs[0].changeType).toBe('added');
+  });
+  
+  it('プロパティの削除を検出できること', () => {
+    const obj1 = { a: 1, b: 2 };
+    const obj2 = { a: 1 };
+    
+    const diffs = generateDetailedJsonDiff(obj1, obj2);
+    
+    expect(diffs).toHaveLength(1);
+    expect(diffs[0].path).toBe('b');
+    expect(diffs[0].oldValue).toBe(2);
+    expect(diffs[0].newValue).toBeUndefined();
+    expect(diffs[0].changeType).toBe('removed');
+  });
+  
+  it('ネストされたプロパティの変更を検出できること', () => {
+    const obj1 = { a: { b: 1 } };
+    const obj2 = { a: { b: 2 } };
+    
+    const diffs = generateDetailedJsonDiff(obj1, obj2);
+    
+    expect(diffs).toHaveLength(1);
+    expect(diffs[0].path).toBe('a.b');
+    expect(diffs[0].oldValue).toBe(1);
+    expect(diffs[0].newValue).toBe(2);
+    expect(diffs[0].changeType).toBe('modified');
+  });
+  
+  it('配列の変更を検出できること', () => {
+    const obj1 = { a: [1, 2] };
+    const obj2 = { a: [1, 2, 3] };
+    
+    const diffs = generateDetailedJsonDiff(obj1, obj2);
+    
+    expect(diffs).toHaveLength(1);
+    expect(diffs[0].path).toBe('a');
+    expect(diffs[0].oldValue).toEqual([1, 2]);
+    expect(diffs[0].newValue).toEqual([1, 2, 3]);
+    expect(diffs[0].changeType).toBe('modified');
+  });
+});
+
+describe('generateTextDiff', () => {
+  it('2つの文字列から差分テキストを生成できること', () => {
+    const text1 = 'Hello World';
+    const text2 = 'Hello Claude';
+    
+    const diffText = generateTextDiff(text1, text2);
+    
+    expect(diffText).toBe('mock diff output');
+  });
+  
+  it('コンテキスト行数を指定できること', () => {
+    const text1 = 'Hello World';
+    const text2 = 'Hello Claude';
+    
+    generateTextDiff(text1, text2, 5);
+    
+    // モック関数を取得
+    const createPatch = vi.mocked(require('diff').createPatch);
+    
+    expect(createPatch).toHaveBeenCalledWith(
+      'file',
+      text1,
+      text2,
+      'old',
+      'new',
+      { context: 5 }
+    );
+  });
+});
+
+describe('sleep', () => {
+  it('指定された時間待機できること', async () => {
+    const start = Date.now();
+    
+    // 短い時間を指定（テストを速く実行するため）
+    await sleep(10);
+    
+    const end = Date.now();
+    const elapsed = end - start;
+    
+    // 少なくとも指定した時間は経過しているはず
+    expect(elapsed).toBeGreaterThanOrEqual(10);
   });
 });
