@@ -49,9 +49,12 @@ npm install
 │   │   ├── app-service.test.ts     # テストコード
 │   │   ├── version-service.ts      # バージョン管理サービス
 │   │   └── version-service.test.ts # テストコード
+│   ├── types/                      # 型定義
+│   │   ├── index.ts                # 共通型定義
+│   │   └── fields.d.ts             # kintoneフィールド型定義（自動生成）
 │   └── utils/                      # ユーティリティ
 │       ├── api-client.ts           # API通信クライアント
-│       └── api-client.tes.ts       # テストコード
+│       └── api-client.test.ts      # テストコード
 ├── dist/                           # ビルド成果物
 ├── docs/                           # ドキュメント
 │   └── requirements.md             # 要件定義書
@@ -75,6 +78,46 @@ npm run build:dev
 # 本番用ビルド
 npm run build:prod
 ```
+
+### テスト実行
+
+```bash
+# テスト実行
+npm test
+
+# テスト監視モード
+npm run test:watch
+
+# UIでテストを実行
+npm run test:ui
+```
+
+### 型定義生成
+
+kintoneアプリのフィールド情報から型定義を自動生成するには、以下のコマンドを実行します。
+
+環境変数を設定してから実行する方法:
+```bash
+# 環境変数を設定
+export KINTONE_DOMAIN=your-domain.cybozu.com
+export KINTONE_USERNAME=your-username
+export KINTONE_PASSWORD=your-password
+export KINTONE_APP_ID=123
+
+# 型定義を生成
+npm run generate-types
+```
+
+または直接コマンドを実行する方法:
+```bash
+npx kintone-dts-gen --base-url https://your-domain.cybozu.com \
+                     -u your-username \
+                     -p your-password \
+                     --app-id 123 \
+                     -o src/types/fields.d.ts
+```
+
+生成された型定義は `src/types/fields.d.ts` に保存され、アプリケーション内で自動的に使用されます。
 
 ## ライセンス
 
