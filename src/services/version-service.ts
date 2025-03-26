@@ -18,9 +18,16 @@ export class VersionService {
   
   /**
    * コンストラクタ
+   * @param apiClientOrBaseUrl ApiClientインスタンスまたはベースURL
    */
-  constructor() {
-    this.apiClient = new ApiClient();
+  constructor(apiClientOrBaseUrl?: ApiClient | string) {
+    if (apiClientOrBaseUrl instanceof ApiClient) {
+      // テスト用：既存のAPIクライアントを使用
+      this.apiClient = apiClientOrBaseUrl;
+    } else {
+      // 新規APIクライアント作成
+      this.apiClient = new ApiClient(apiClientOrBaseUrl);
+    }
   }
   
   /**

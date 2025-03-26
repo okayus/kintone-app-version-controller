@@ -17,10 +17,20 @@ export class AppListBackup {
   
   /**
    * コンストラクタ
+   * @param appServiceOrBaseUrl AppServiceインスタンスまたはベースURL
+   * @param versionService VersionServiceインスタンス
    */
-  constructor() {
-    this.appService = new AppService();
-    this.versionService = new VersionService();
+  constructor(appServiceOrBaseUrl?: AppService | string, versionService?: VersionService) {
+    if (appServiceOrBaseUrl instanceof AppService) {
+      // テスト用：既存のサービスインスタンスを使用
+      this.appService = appServiceOrBaseUrl;
+      this.versionService = versionService || new VersionService();
+    } else {
+      // 新規サービスインスタンス作成
+      const baseUrl = typeof appServiceOrBaseUrl === 'string' ? appServiceOrBaseUrl : undefined;
+      this.appService = new AppService(baseUrl);
+      this.versionService = new VersionService(baseUrl);
+    }
   }
   
   /**

@@ -13,9 +13,26 @@ export class ApiClient {
 
   /**
    * コンストラクタ
+   * @param clientOrBaseUrl KintoneRestAPIClientインスタンスまたはベースURL
    */
-  constructor() {
-    this.client = new KintoneRestAPIClient();
+  constructor(clientOrBaseUrl?: KintoneRestAPIClient | string) {
+    if (clientOrBaseUrl instanceof KintoneRestAPIClient) {
+      // テスト用：既存のクライアントインスタンスを使用
+      this.client = clientOrBaseUrl;
+    } else {
+      // 新規クライアント作成
+      const baseUrl = typeof clientOrBaseUrl === 'string' ? clientOrBaseUrl : undefined;
+      const options: any = baseUrl ? { baseUrl } : {};
+      
+      // Node.js環境（テスト時）には認証情報が必要
+      if (typeof window === 'undefined') {
+        options.auth = {
+          apiToken: 'DUMMY_API_TOKEN_FOR_TESTING'
+        };
+      }
+      
+      this.client = new KintoneRestAPIClient(options);
+    }
   }
 
   /**
