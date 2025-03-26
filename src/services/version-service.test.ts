@@ -14,7 +14,7 @@ vi.mock('../utils/api-client', () => {
         getRecords: vi.fn().mockResolvedValue([
           {
             appId: { value: '1' },
-            version: { value: '1.0.0' },
+            version: { value: '1' },
             data: { value: JSON.stringify({ name: 'App 1' }) },
             comment: { value: 'Test comment' },
             createdAt: { value: '2025-03-27T00:00:00Z' },
@@ -46,13 +46,13 @@ describe('VersionService', () => {
   it('should get the latest version', async () => {
     const version = await versionService.getLatestVersion(1);
     expect(version).not.toBeNull();
-    expect(version?.versionNumber).toBe('1.0.0');
+    expect(version?.versionNumber).toBe('1');
   });
 
   it('should get version history', async () => {
     const history = await versionService.getVersionHistory(1);
     expect(history).toHaveLength(1);
-    expect(history[0].versionNumber).toBe('1.0.0');
+    expect(history[0].versionNumber).toBe('1');
   });
 
   it('should compare app versions and detect changes', async () => {
@@ -80,13 +80,13 @@ describe('VersionService', () => {
     };
     
     const newVersion = await versionService.createNewVersion(1, appDetails, 'New version');
-    expect(newVersion.versionNumber).toBe('1.0.1');
+    expect(newVersion.versionNumber).toBe('2');
     expect(newVersion.comment).toBe('New version');
   });
 
   it('should generate diff between versions', () => {
     const oldVersion = {
-      versionNumber: '1.0.0',
+      versionNumber: '1',
       createdAt: '2025-03-26T00:00:00Z',
       createdBy: { code: 'user1', name: 'User 1' },
       data: { name: 'Old Name' },
@@ -94,7 +94,7 @@ describe('VersionService', () => {
     };
     
     const newVersion = {
-      versionNumber: '1.0.1',
+      versionNumber: '2',
       createdAt: '2025-03-27T00:00:00Z',
       createdBy: { code: 'user1', name: 'User 1' },
       data: { name: 'New Name' },
@@ -110,7 +110,7 @@ describe('VersionService', () => {
 
   it('should return empty array if no differences', () => {
     const version1 = {
-      versionNumber: '1.0.0',
+      versionNumber: '1',
       createdAt: '2025-03-26T00:00:00Z',
       createdBy: { code: 'user1', name: 'User 1' },
       data: { name: 'Same Name' },
@@ -118,7 +118,7 @@ describe('VersionService', () => {
     };
     
     const version2 = {
-      versionNumber: '1.0.1',
+      versionNumber: '2',
       createdAt: '2025-03-27T00:00:00Z',
       createdBy: { code: 'user1', name: 'User 1' },
       data: { name: 'Same Name' },
