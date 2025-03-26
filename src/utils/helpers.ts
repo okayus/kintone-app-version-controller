@@ -90,7 +90,7 @@ export function generateVersionNumber(currentVersion: string | number = 0): stri
   }
   
   // インクリメントして文字列に戻す
-  return (versionNum + 1).toString();
+  return String(versionNum + 1);
 }
 
 /**
@@ -282,4 +282,51 @@ export function generateTextDiff(
   );
   
   return patch;
+}
+
+/**
+ * オブジェクトの深い比較を行う（deep-equalの代替）
+ * @param obj1 比較対象1
+ * @param obj2 比較対象2
+ * @returns 等しいかどうか
+ */
+export function isDeepEqual(obj1: any, obj2: any): boolean {
+  // 基本型の場合は単純比較
+  if (obj1 === obj2) return true;
+  
+  // どちらかがnullまたはundefinedの場合
+  if (obj1 == null || obj2 == null) return false;
+  
+  // 型が異なる場合
+  if (typeof obj1 !== typeof obj2) return false;
+  
+  // オブジェクト型の場合
+  if (typeof obj1 === 'object') {
+    // 配列の場合
+    if (Array.isArray(obj1) && Array.isArray(obj2)) {
+      if (obj1.length !== obj2.length) return false;
+      
+      for (let i = 0; i < obj1.length; i++) {
+        if (!isDeepEqual(obj1[i], obj2[i])) return false;
+      }
+      
+      return true;
+    }
+    
+    // 通常のオブジェクトの場合
+    const keys1 = Object.keys(obj1);
+    const keys2 = Object.keys(obj2);
+    
+    if (keys1.length !== keys2.length) return false;
+    
+    for (const key of keys1) {
+      if (!keys2.includes(key)) return false;
+      if (!isDeepEqual(obj1[key], obj2[key])) return false;
+    }
+    
+    return true;
+  }
+  
+  // それ以外の基本型
+  return obj1 === obj2;
 }
