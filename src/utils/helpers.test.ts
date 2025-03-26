@@ -17,10 +17,9 @@ import {
 } from './helpers';
 
 // diffモジュールをモック
-const createPatchMock = vi.fn().mockReturnValue('mock diff output');
 vi.mock('diff', () => {
   return {
-    createPatch: createPatchMock
+    createPatch: vi.fn().mockReturnValue('mock diff output')
   };
 });
 
@@ -216,7 +215,6 @@ describe('generateTextDiff', () => {
     const diffText = generateTextDiff(text1, text2);
     
     expect(diffText).toBe('mock diff output');
-    expect(createPatchMock).toHaveBeenCalled();
   });
   
   it('コンテキスト行数を指定できること', () => {
@@ -225,7 +223,10 @@ describe('generateTextDiff', () => {
     
     generateTextDiff(text1, text2, 5);
     
-    expect(createPatchMock).toHaveBeenCalledWith(
+    // モック関数を取得
+    const createPatch = vi.mocked(require('diff').createPatch);
+    
+    expect(createPatch).toHaveBeenCalledWith(
       'file',
       text1,
       text2,
