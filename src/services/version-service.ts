@@ -100,10 +100,13 @@ export class VersionService implements IVersionService {
       // 最新バージョンを取得
       const latestVersion = await this.getLatestVersion(appId);
       
-      // バージョン番号を生成
-      const versionNumber = latestVersion
+      // バージョン番号を生成 - 文字列を返すように修正されたヘルパー関数を使用
+      const versionNumberStr = latestVersion
         ? generateVersionNumber(latestVersion.versionNumber)
-        : 1;
+        : '1';
+      
+      // 文字列から数値に変換（インターフェース定義に合わせる）
+      const versionNumber = parseInt(versionNumberStr, 10);
       
       // 現在のユーザー情報
       const currentUser = getCurrentUser();
