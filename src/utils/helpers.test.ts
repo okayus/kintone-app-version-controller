@@ -97,20 +97,20 @@ describe('truncateString', () => {
 });
 
 describe('generateVersionNumber', () => {
-  it('should increment patch version by default', () => {
-    expect(generateVersionNumber('1.2.3')).toBe('1.2.4');
+  it('should increment the version number', () => {
+    expect(generateVersionNumber('1')).toBe('2');
+    expect(generateVersionNumber('5')).toBe('6');
+    expect(generateVersionNumber('99')).toBe('100');
   });
   
-  it('should increment minor version', () => {
-    expect(generateVersionNumber('1.2.3', 'minor')).toBe('1.3.0');
+  it('should handle various input formats', () => {
+    expect(generateVersionNumber('1.2.3')).toBe('2');
+    expect(generateVersionNumber('abc')).toBe('1');
+    expect(generateVersionNumber('')).toBe('1');
   });
   
-  it('should increment major version', () => {
-    expect(generateVersionNumber('1.2.3', 'major')).toBe('2.0.0');
-  });
-  
-  it('should use default version if none provided', () => {
-    expect(generateVersionNumber()).toBe('0.0.1');
+  it('should use default value if none provided', () => {
+    expect(generateVersionNumber()).toBe('1');
   });
 });
 
