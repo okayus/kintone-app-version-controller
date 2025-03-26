@@ -72,16 +72,25 @@ export function truncateString(str: string, length: number, suffix = '...'): str
 /**
  * バージョン番号を生成する（自然数のインクリメント）
  * @param currentVersion 現在のバージョン
- * @returns 新しいバージョン番号
+ * @returns 新しいバージョン番号（文字列）
  */
-export function generateVersionNumber(currentVersion = 0): number {
-  // 数値以外の場合は1を返す
-  if (typeof currentVersion !== 'number' || isNaN(currentVersion)) {
-    return 1;
+export function generateVersionNumber(currentVersion: string | number = 0): string {
+  // 数値に変換
+  let versionNum: number;
+  
+  if (typeof currentVersion === 'number') {
+    versionNum = currentVersion;
+  } else {
+    versionNum = parseInt(currentVersion, 10);
   }
   
-  // インクリメントして返す
-  return currentVersion + 1;
+  // NaNの場合は1を返す
+  if (isNaN(versionNum)) {
+    return '1';
+  }
+  
+  // インクリメントして文字列に戻す
+  return (versionNum + 1).toString();
 }
 
 /**
