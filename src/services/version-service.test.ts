@@ -8,6 +8,14 @@ import { AppService } from './app-service';
 import { VERSION_FIELD_CODES } from '../constants';
 import { VersionInfo, AppDetail } from '../types';
 
+// deep-equalをモック
+const deepEqualMock = vi.fn().mockReturnValue(false);
+vi.mock('deep-equal', () => {
+  return {
+    default: deepEqualMock
+  };
+});
+
 // VERSION_FIELD_CODESをモック
 vi.mock('../constants', () => {
   return {
@@ -58,14 +66,6 @@ vi.mock('./app-service', () => {
         }),
       };
     }),
-  };
-});
-
-// deep-equalをモック
-const deepEqualMock = vi.fn().mockImplementation(() => false);
-vi.mock('deep-equal', () => {
-  return {
-    default: deepEqualMock
   };
 });
 
@@ -199,6 +199,9 @@ describe('VersionService', () => {
     });
     
     versionService = new VersionService();
+    
+    // 各テスト前にモックをリセット
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
@@ -283,7 +286,7 @@ describe('VersionService', () => {
     });
     
     it('変更がない場合はfalseを返すこと', async () => {
-      // deep-equalのモックを一時的に変更
+      // テスト用にモックの値を一時的に変更
       deepEqualMock.mockReturnValueOnce(true);
       
       const appDetails = { ...version2.data };
