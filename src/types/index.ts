@@ -234,7 +234,7 @@ export interface SchemaComparisonResult {
  * バージョン情報
  */
 export interface VersionInfo {
-  versionNumber: number;  // 文字列から数値に変更
+  versionNumber: number;  // 数値型を維持
   createdAt: string;
   createdBy: {
     code: string;
@@ -249,7 +249,7 @@ export interface VersionInfo {
  * バージョン履歴一覧表示用の軽量なバージョン情報
  */
 export interface VersionSummary {
-  versionNumber: number;  // 文字列から数値に変更
+  versionNumber: number;  // 数値型を維持
   createdAt: string;
   createdBy: {
     code: string;
@@ -350,3 +350,15 @@ export interface ApiError {
   errors?: any[];
   id?: string;
 }
+
+/**
+ * イベントタイプ
+ */
+export const EVENT_TYPES = {
+  INDEX_SHOW: 'app.record.index.show',
+  DETAIL_SHOW: 'app.record.detail.show',
+  CREATE_SHOW: 'app.record.create.show',
+  EDIT_SHOW: 'app.record.edit.show',
+  PRINT_SHOW: 'app.record.print.show',
+  INDEX_EDIT_SHOW: 'app.record.index.edit.show'
+};
