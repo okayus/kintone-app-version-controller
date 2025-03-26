@@ -11,6 +11,17 @@ export interface AppInfo {
   description: string;
   spaceId?: string;
   threadId?: string;
+  // 拡張情報
+  creator?: {
+    code: string;
+    name: string;
+  };
+  createdAt?: string;
+  modifier?: {
+    code: string;
+    name: string;
+  };
+  modifiedAt?: string;
 }
 
 /**
@@ -61,6 +72,7 @@ export interface LayoutField {
  */
 export interface AppLayout {
   layout: LayoutElement[];
+  revision?: string;
 }
 
 /**
@@ -82,6 +94,73 @@ export interface AppViews {
   views: {
     [viewId: string]: AppView;
   };
+  revision?: string;
+}
+
+/**
+ * アプリカスタマイズ情報
+ */
+export interface AppCustomize {
+  desktop?: {
+    js?: Array<{
+      type: string;
+      url: string;
+    }>;
+    css?: Array<{
+      type: string;
+      url: string;
+    }>;
+  };
+  mobile?: {
+    js?: Array<{
+      type: string;
+      url: string;
+    }>;
+    css?: Array<{
+      type: string;
+      url: string;
+    }>;
+  };
+  revision?: string;
+}
+
+/**
+ * アプリアクセス権情報
+ */
+export interface AppAcl {
+  rights: Array<{
+    entity: {
+      type: 'USER' | 'GROUP' | 'ORGANIZATION' | 'FIELD_ENTITY';
+      code: string;
+    };
+    appEditable: boolean;
+    recordViewable: boolean;
+    recordAddable: boolean;
+    recordEditable: boolean;
+    recordDeletable: boolean;
+    recordImportable: boolean;
+    recordExportable: boolean;
+  }>;
+  revision?: string;
+}
+
+/**
+ * アプリ設定情報
+ */
+export interface AppSettings {
+  name?: string;
+  description?: string;
+  icon?: {
+    type: 'FILE' | 'PRESET';
+    key?: string;
+    file?: {
+      fileKey: string;
+    };
+  };
+  theme?: string;
+  revision?: string;
+  // その他の設定情報
+  [key: string]: any;
 }
 
 /**
@@ -92,6 +171,63 @@ export interface AppDetail {
   fields: AppFields;
   layout: AppLayout;
   views: AppViews;
+  // 拡張情報
+  customize?: AppCustomize;
+  acl?: AppAcl;
+  settings?: AppSettings;
+}
+
+/**
+ * アプリスキーマ
+ */
+export interface AppSchema {
+  appId: string;
+  name: string;
+  fields: AppFields;
+  layout: AppLayout;
+  views: AppViews;
+  customize?: AppCustomize;
+  acl?: AppAcl;
+  settings?: AppSettings;
+  // エクスポートメタデータ
+  exportedAt: string;
+  exportedBy: {
+    code: string;
+    name: string;
+  };
+}
+
+/**
+ * アプリ検索条件
+ */
+export interface AppSearchCriteria {
+  name?: string;
+  spaceIds?: string[];
+  limit?: number;
+  offset?: number;
+  creator?: string;
+  modifiedAfter?: string;
+  modifiedBefore?: string;
+}
+
+/**
+ * スキーマ比較結果
+ */
+export interface SchemaComparisonResult {
+  appId1: string;
+  appId2: string;
+  comparedAt: string;
+  differences: VersionDiff[];
+  // 統計情報
+  stats: {
+    fieldsAdded: number;
+    fieldsRemoved: number;
+    fieldsModified: number;
+    layoutChanges: number;
+    viewChanges: number;
+    settingsChanges: number;
+    totalChanges: number;
+  };
 }
 
 /**
@@ -116,6 +252,14 @@ export interface VersionDiff {
   oldValue: any;
   newValue: any;
   changeType: 'added' | 'removed' | 'modified';
+}
+
+/**
+ * キャッシュオプション
+ */
+export interface CacheOptions {
+  enabled: boolean;
+  ttl: number; // 有効期限（ミリ秒）
 }
 
 /**
