@@ -6,9 +6,47 @@ import { KintoneRestAPIClient } from '@kintone/rest-api-client';
 import { AppInfo, AppFields, AppLayout, AppViews, ApiError } from '../types';
 
 /**
+ * API通信エラークラス
+ * kintone REST API呼び出し時のエラーをカスタムエラーとして扱うためのクラス
+ */
+export class ApiClientError extends Error {
+  public statusCode?: number;
+  public errors?: any[];
+  public id?: string;
+
+  constructor(message: string, statusCode?: number, errors?: any[], id?: string) {
+    super(message);
+    this.name = 'ApiClientError';
+    this.statusCode = statusCode;
+    this.errors = errors;
+    this.id = id;
+  }
+}
+
+/**
+ * API通信クライアントインターフェース
+ * API通信に必要なメソッドを定義
+ */
+export interface IApiClient {
+  getApps(): Promise<AppInfo[]>;
+  getApp(appId: number): Promise<AppInfo>;
+  getFormFields(appId: number): Promise<AppFields>;
+  getFormLayout(appId: number): Promise<AppLayout>;
+  getViews(appId: number): Promise<AppViews>;
+  getRecords(appId: number, query?: string, fields?: string[]): Promise<any[]>;
+  postRecord(appId: number, record: Record<string, any>): Promise<{ id: string; revision: string }>;
+  putRecord(
+    appId: number,
+    recordId: number,
+    record: Record<string, any>,
+    revision?: string
+  ): Promise<{ revision: string }>;
+}
+
+/**
  * APIクライアントクラス
  */
-export class ApiClient {
+export class ApiClient implements IApiClient {
   private client: KintoneRestAPIClient;
 
   /**
@@ -27,7 +65,7 @@ export class ApiClient {
       // Node.js環境（テスト時）には認証情報が必要
       if (typeof window === 'undefined') {
         options.auth = {
-          apiToken: 'DUMMY_API_TOKEN_FOR_TESTING'
+          apiToken: process.env.KINTONE_API_TOKEN || 'DUMMY_API_TOKEN_FOR_TESTING'
         };
       }
       
@@ -37,11 +75,16 @@ export class ApiClient {
 
   /**
    * アプリ一覧を取得する
+   * @param offset オフセット（ページネーション用）
+   * @param limit 取得件数（ページネーション用）
    * @returns アプリ一覧
    */
-  async getApps(): Promise<AppInfo[]> {
+  async getApps(offset?: number, limit?: number): Promise<AppInfo[]> {
     try {
-      const response = await this.client.app.getApps();
+      const response = await this.client.app.getApps({
+        offset: offset || 0,
+        limit: limit || 100
+      });
       return response.apps.map(app => ({
         appId: app.appId,
         name: app.name,
@@ -79,11 +122,17 @@ export class ApiClient {
   /**
    * アプリのフィールド情報を取得する
    * @param appId アプリID
+   * @param lang 言語（オプション）
+   * @param preview プレビュー版を取得するかどうか（オプション）
    * @returns フィールド情報
    */
-  async getFormFields(appId: number): Promise<AppFields> {
+  async getFormFields(appId: number, lang?: string, preview?: boolean): Promise<AppFields> {
     try {
-      const response = await this.client.app.getFormFields({ app: appId });
+      const params: any = { app: appId };
+      if (lang) params.lang = lang;
+      if (preview) params.preview = preview;
+
+      const response = await this.client.app.getFormFields(params);
       return response.properties;
     } catch (error) {
       this.handleError(error as ApiError, `フィールド情報(アプリID: ${appId})の取得中にエラーが発生しました`);
@@ -94,11 +143,15 @@ export class ApiClient {
   /**
    * アプリのレイアウト情報を取得する
    * @param appId アプリID
+   * @param preview プレビュー版を取得するかどうか（オプション）
    * @returns レイアウト情報
    */
-  async getFormLayout(appId: number): Promise<AppLayout> {
+  async getFormLayout(appId: number, preview?: boolean): Promise<AppLayout> {
     try {
-      const response = await this.client.app.getFormLayout({ app: appId });
+      const params: any = { app: appId };
+      if (preview) params.preview = true;
+
+      const response = await this.client.app.getFormLayout(params);
       return { layout: response.layout };
     } catch (error) {
       this.handleError(error as ApiError, `レイアウト情報(アプリID: ${appId})の取得中にエラーが発生しました`);
@@ -109,11 +162,17 @@ export class ApiClient {
   /**
    * アプリのビュー一覧を取得する
    * @param appId アプリID
+   * @param lang 言語（オプション）
+   * @param preview プレビュー版を取得するかどうか（オプション）
    * @returns ビュー情報
    */
-  async getViews(appId: number): Promise<AppViews> {
+  async getViews(appId: number, lang?: string, preview?: boolean): Promise<AppViews> {
     try {
-      const response = await this.client.app.getViews({ app: appId });
+      const params: any = { app: appId };
+      if (lang) params.lang = lang;
+      if (preview) params.preview = preview;
+
+      const response = await this.client.app.getViews(params);
       return { views: response.views };
     } catch (error) {
       this.handleError(error as ApiError, `ビュー情報(アプリID: ${appId})の取得中にエラーが発生しました`);
@@ -126,14 +185,21 @@ export class ApiClient {
    * @param appId アプリID
    * @param query 検索クエリ
    * @param fields 取得するフィールド
+   * @param totalCount 総レコード数を取得するかどうか
    * @returns レコード一覧
    */
-  async getRecords(appId: number, query?: string, fields?: string[]): Promise<any[]> {
+  async getRecords(
+    appId: number, 
+    query?: string, 
+    fields?: string[],
+    totalCount?: boolean
+  ): Promise<any[]> {
     try {
       const response = await this.client.record.getRecords({
         app: appId,
         query: query || '',
         fields: fields || [],
+        totalCount: totalCount || false
       });
       return response.records;
     } catch (error) {
@@ -195,15 +261,87 @@ export class ApiClient {
   }
 
   /**
+   * 複数レコードを一括登録する
+   * @param appId アプリID
+   * @param records レコードの配列
+   * @returns 登録結果
+   */
+  async postRecords(appId: number, records: Record<string, any>[]): Promise<{ ids: string[]; revisions: string[] }> {
+    try {
+      const response = await this.client.record.addRecords({
+        app: appId,
+        records: records,
+      });
+      return {
+        ids: response.ids,
+        revisions: response.revisions,
+      };
+    } catch (error) {
+      this.handleError(error as ApiError, `レコード一括登録(アプリID: ${appId})中にエラーが発生しました`);
+      throw error;
+    }
+  }
+
+  /**
+   * 複数レコードを一括更新する
+   * @param appId アプリID
+   * @param records 更新するレコードの配列
+   * @returns 更新結果
+   */
+  async putRecords(
+    appId: number, 
+    records: Array<{
+      id: number;
+      record: Record<string, any>;
+      revision?: string;
+    }>
+  ): Promise<{ records: Array<{ id: string; revision: string }> }> {
+    try {
+      const response = await this.client.record.updateRecords({
+        app: appId,
+        records: records,
+      });
+      return {
+        records: response.records,
+      };
+    } catch (error) {
+      this.handleError(error as ApiError, `レコード一括更新(アプリID: ${appId})中にエラーが発生しました`);
+      throw error;
+    }
+  }
+
+  /**
+   * アプリのカスタマイズ情報を取得する
+   * @param appId アプリID
+   * @param preview プレビュー版を取得するかどうか（オプション）
+   * @returns カスタマイズ情報
+   */
+  async getAppCustomize(appId: number, preview?: boolean): Promise<any> {
+    try {
+      const params: any = { app: appId };
+      if (preview) params.preview = true;
+
+      const response = await this.client.app.getAppCustomize(params);
+      return response;
+    } catch (error) {
+      this.handleError(error as ApiError, `アプリカスタマイズ情報(アプリID: ${appId})の取得中にエラーが発生しました`);
+      throw error;
+    }
+  }
+
+  /**
    * エラーハンドリング
    * @param error エラーオブジェクト
    * @param defaultMessage デフォルトエラーメッセージ
+   * @throws {ApiClientError} フォーマットされたエラー情報
    */
   private handleError(error: ApiError, defaultMessage: string): void {
     console.error(defaultMessage, error);
     
     // エラーの詳細情報を取得
     let errorMessage = defaultMessage;
+    let statusCode: number | undefined;
+    
     if (error.message) {
       errorMessage += `: ${error.message}`;
     }
@@ -216,7 +354,26 @@ export class ApiClient {
       errorMessage += ` (${details})`;
     }
     
-    // ログ出力
-    console.error(errorMessage);
+    // エラーコードから推測されるHTTPステータスコード
+    if (error.code) {
+      if (error.code === 'GAIA_NO_PERMISSION') {
+        statusCode = 403;
+      } else if (error.code === 'GAIA_APP_NOT_FOUND') {
+        statusCode = 404;
+      } else if (error.code.startsWith('GAIA_')) {
+        statusCode = 400;
+      }
+    }
+    
+    // カスタムエラーオブジェクトを作成
+    const clientError = new ApiClientError(
+      errorMessage, 
+      statusCode, 
+      error.errors, 
+      error.id
+    );
+    
+    // エラーをスロー
+    throw clientError;
   }
 }
