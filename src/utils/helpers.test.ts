@@ -22,6 +22,7 @@ vi.mock('diff', () => {
     createPatch: vi.fn().mockReturnValue('mock diff output')
   };
 });
+const createPatchMock = vi.mocked(vi.importActual('diff')).createPatch;
 
 describe('deepClone', () => {
   it('オブジェクトの深いコピーを作成できること', () => {
