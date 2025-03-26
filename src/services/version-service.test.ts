@@ -9,12 +9,12 @@ import { VERSION_FIELD_CODES } from '../constants';
 import { VersionInfo, AppDetail } from '../types';
 
 // deep-equalをモック
-const deepEqualMock = vi.fn().mockReturnValue(false);
 vi.mock('deep-equal', () => {
   return {
-    default: deepEqualMock
+    default: vi.fn().mockReturnValue(false)
   };
 });
+const deepEqualMock = vi.mocked(vi.importActual('deep-equal')).default;
 
 // VERSION_FIELD_CODESをモック
 vi.mock('../constants', () => {
@@ -70,8 +70,8 @@ vi.mock('./app-service', () => {
 });
 
 // getCurrentUserをモック
-vi.mock('../utils/helpers', async (originalImport) => {
-  const actual = await originalImport();
+vi.mock('../utils/helpers', async (importOriginal) => {
+  const actual = await importOriginal();
   return {
     ...actual,
     getCurrentUser: vi.fn().mockReturnValue({ code: 'test_user', name: 'Test User' }),
