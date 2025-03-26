@@ -6,6 +6,7 @@ import { AppService, VersionService } from './services';
 import { createButton, Notification, ProgressIndicator } from './components';
 import { APP_IDS, EVENT_TYPES, CUSTOMIZE_IDS } from './constants';
 import { sleep } from './utils/helpers';
+import { logError, logInfo } from './utils/logger';
 
 /**
  * アプリ一覧バックアッププロセスクラス
@@ -14,6 +15,7 @@ export class AppListBackup {
   private appService: AppService;
   private versionService: VersionService;
   private progressIndicator: ProgressIndicator | null = null;
+  private isProcessing: boolean = false;
   
   /**
    * コンストラクタ
@@ -41,7 +43,7 @@ export class AppListBackup {
     const headerMenuElement = document.querySelector('.gaia-argoui-app-toolbar-menu');
     
     if (!headerMenuElement) {
-      console.error('ヘッダーメニュー要素が見つかりません');
+      logError('ヘッダーメニュー要素が見つかりません');
       return;
     }
     
@@ -61,6 +63,7 @@ export class AppListBackup {
     
     // ボタンをヘッダーメニューに追加
     headerMenuElement.appendChild(backupButton);
+    logInfo('バックアップボタンが追加されました');
   }
   
   /**
@@ -69,11 +72,19 @@ export class AppListBackup {
   private async handleBackupClick(event: MouseEvent) {
     event.preventDefault();
     
+    // 多重実行防止
+    if (this.isProcessing) {
+      Notification.warning('すでにバックアップ処理が実行中です');
+      return;
+    }
+    
     try {
       // 確認ダイアログ
       if (!confirm('アプリ設定のバックアップを開始しますか？')) {
         return;
       }
+      
+      this.isProcessing = true;
       
       // 処理中はボタンを無効化
       const button = document.getElementById(CUSTOMIZE_IDS.BACKUP_BUTTON) as HTMLButtonElement;
@@ -83,13 +94,17 @@ export class AppListBackup {
       }
       
       // バックアップ処理を実行
-      await this.executeBackup();
+      const result = await this.executeBackup();
       
       // 処理完了を通知
-      Notification.success('アプリ設定のバックアップが完了しました');
+      if (result && result.updated > 0) {
+        Notification.success(`アプリ設定のバックアップが完了しました（${result.updated}/${result.total}個のアプリを更新）`);
+      } else {
+        Notification.info('設定変更のあるアプリはありませんでした');
+      }
     } catch (error) {
-      console.error('バックアップ処理中にエラーが発生しました', error);
-      Notification.error('バックアップ処理中にエラーが発生しました');
+      logError('バックアップ処理中にエラーが発生しました', error);
+      Notification.error(`バックアップ処理中にエラーが発生しました: ${error instanceof Error ? error.message : '不明なエラー'}`);
     } finally {
       // ボタンを再有効化
       const button = document.getElementById(CUSTOMIZE_IDS.BACKUP_BUTTON) as HTMLButtonElement;
@@ -100,6 +115,7 @@ export class AppListBackup {
       
       // プログレスインジケーターを削除
       this.removeProgressIndicator();
+      this.isProcessing = false;
     }
   }
   
@@ -109,13 +125,21 @@ export class AppListBackup {
   async executeBackup() {
     try {
       // 全アプリの情報を取得
+      logInfo('全アプリの情報を取得しています...');
       const apps = await this.appService.getAllApps();
+      
+      if (!apps || apps.length === 0) {
+        Notification.warning('バックアップ対象のアプリが見つかりませんでした');
+        return { total: 0, updated: 0 };
+      }
       
       // 進捗表示用のプログレスインジケーターを作成
       this.createProgressIndicator(apps.length);
       
       // 更新されたアプリの数
       let updatedCount = 0;
+      // エラーが発生したアプリの数
+      let errorCount = 0;
       
       // 各アプリに対して処理を実行
       for (let i = 0; i < apps.length; i++) {
@@ -144,24 +168,32 @@ export class AppListBackup {
               appDetails
             );
             updatedCount++;
+            logInfo(`アプリ "${app.name}" (ID: ${app.appId}) の新バージョンを作成しました`);
+          } else {
+            logInfo(`アプリ "${app.name}" (ID: ${app.appId}) に変更はありません`);
           }
         } catch (error) {
-          console.error(`アプリ ${app.name} (ID: ${app.appId}) の処理中にエラーが発生しました`, error);
+          errorCount++;
+          const errorMessage = error instanceof Error ? error.message : '不明なエラー';
+          logError(`アプリ "${app.name}" (ID: ${app.appId}) の処理中にエラーが発生しました: ${errorMessage}`, error);
+          
+          // エラーが発生してもプログレスバーとメッセージを更新
+          this.updateProgress(i + 1, `エラー: ${app.name} (ID: ${app.appId})`);
+          
           // エラーが発生しても処理を続行
           continue;
         }
       }
       
       // 処理結果の通知
-      if (updatedCount > 0) {
-        Notification.success(`${updatedCount} 個のアプリの設定変更を検出し、バックアップしました`);
-      } else {
-        Notification.info('設定変更のあるアプリはありませんでした');
+      if (errorCount > 0) {
+        Notification.warning(`${errorCount}個のアプリでエラーが発生しました。ログを確認してください。`);
       }
       
-      return { total: apps.length, updated: updatedCount };
+      logInfo(`バックアップ処理が完了しました。合計: ${apps.length}、更新: ${updatedCount}、エラー: ${errorCount}`);
+      return { total: apps.length, updated: updatedCount, error: errorCount };
     } catch (error) {
-      console.error('バックアップ処理実行中にエラーが発生しました', error);
+      logError('バックアップ処理の実行中に致命的なエラーが発生しました', error);
       throw error;
     }
   }
@@ -184,28 +216,51 @@ export class AppListBackup {
       showLabel: true,
     });
     
+    // ステータス表示用のラベル要素を追加
+    const statusLabel = document.createElement('div');
+    statusLabel.id = `${CUSTOMIZE_IDS.PROGRESS_INDICATOR}-status`;
+    statusLabel.style.margin = '5px 0';
+    statusLabel.textContent = 'バックアップ処理を開始しています...';
+    
+    // コンテナ作成
+    const container = document.createElement('div');
+    container.id = `${CUSTOMIZE_IDS.PROGRESS_INDICATOR}-container`;
+    container.style.margin = '10px 0';
+    container.style.padding = '10px';
+    container.style.backgroundColor = '#f5f5f5';
+    container.style.border = '1px solid #e0e0e0';
+    container.style.borderRadius = '4px';
+    
+    // 要素を追加
+    container.appendChild(this.progressIndicator.container);
+    container.appendChild(statusLabel);
+    
     // 本文の直前に挿入
     const contentElement = document.querySelector('.gaia-argoui-app-content');
     if (contentElement) {
       contentElement.insertBefore(
-        this.progressIndicator.container,
+        container,
         contentElement.firstChild
       );
     }
+    
+    // コンテナへの参照を保持
+    (this.progressIndicator as any).statusContainer = container;
+    (this.progressIndicator as any).statusLabel = statusLabel;
   }
   
   /**
    * プログレスインジケーターを更新
    * @param value 現在の値
-   * @param label ラベル
+   * @param label ステータスラベル
    */
   private updateProgress(value: number, label?: string) {
     if (this.progressIndicator) {
       this.progressIndicator.setValue(value);
       
-      if (label) {
-        // ラベルを更新する実装（実際のProgressIndicatorクラスには実装されていない）
-        // this.progressIndicator.setLabel(label);
+      // ラベルを更新
+      if (label && (this.progressIndicator as any).statusLabel) {
+        (this.progressIndicator as any).statusLabel.textContent = label;
       }
     }
   }
@@ -215,7 +270,12 @@ export class AppListBackup {
    */
   private removeProgressIndicator() {
     if (this.progressIndicator) {
-      this.progressIndicator.remove();
+      // コンテナごと削除
+      if ((this.progressIndicator as any).statusContainer) {
+        (this.progressIndicator as any).statusContainer.remove();
+      } else {
+        this.progressIndicator.remove();
+      }
       this.progressIndicator = null;
     }
   }
