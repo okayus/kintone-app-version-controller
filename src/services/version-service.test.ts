@@ -6,17 +6,6 @@ import { VersionService } from './version-service';
 import { ApiClient } from '../utils/api-client';
 import { VERSION_FIELD_CODES } from '../constants';
 
-// diffモジュールをモック
-vi.mock('diff', () => {
-  return {
-    diffJson: vi.fn().mockImplementation(() => [
-      { added: true, value: '{"new": "value"}' },
-      { removed: true, value: '{"old": "value"}' },
-      { value: '{"unchanged": "value"}' }
-    ])
-  };
-});
-
 // ApiClientのモック
 vi.mock('../utils/api-client', () => {
   return {
@@ -113,8 +102,30 @@ describe('VersionService', () => {
     };
     
     const diff = versionService.generateDiff(oldVersion, newVersion);
-    expect(diff).toHaveLength(3);
-    expect(diff[0].changeType).toBe('added');
-    expect(diff[1].changeType).toBe('removed');
+    expect(diff).toHaveLength(1);
+    expect(diff[0].changeType).toBe('modified');
+    expect(diff[0].oldValue).toEqual(oldVersion.data);
+    expect(diff[0].newValue).toEqual(newVersion.data);
+  });
+
+  it('should return empty array if no differences', () => {
+    const version1 = {
+      versionNumber: '1.0.0',
+      createdAt: '2025-03-26T00:00:00Z',
+      createdBy: { code: 'user1', name: 'User 1' },
+      data: { name: 'Same Name' },
+      comment: 'Comment'
+    };
+    
+    const version2 = {
+      versionNumber: '1.0.1',
+      createdAt: '2025-03-27T00:00:00Z',
+      createdBy: { code: 'user1', name: 'User 1' },
+      data: { name: 'Same Name' },
+      comment: 'Different comment'
+    };
+    
+    const diff = versionService.generateDiff(version1, version2);
+    expect(diff).toHaveLength(0);
   });
 });
