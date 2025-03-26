@@ -74,7 +74,7 @@ vi.mock('../utils/helpers', async (originalImport) => {
 // サンプルバージョン情報の作成
 const createSampleVersions = () => {
   const version1: VersionInfo = {
-    versionNumber: '1',
+    versionNumber: 1,  // 文字列から数値に変更
     createdAt: '2025-03-25T10:00:00Z',
     createdBy: { code: 'user1', name: 'User 1' },
     data: {
@@ -87,7 +87,7 @@ const createSampleVersions = () => {
   };
   
   const version2: VersionInfo = {
-    versionNumber: '2',
+    versionNumber: 2,  // 文字列から数値に変更
     createdAt: '2025-03-26T10:00:00Z',
     createdBy: { code: 'user1', name: 'User 1' },
     data: {
@@ -118,7 +118,7 @@ describe('VersionService', () => {
           $id: { value: '1001' },
           appId: { value: '1' },
           appName: { value: 'App 1' },
-          versionNumber: { value: '2' },
+          versionNumber: { value: 2 },  // 数値に変更
           createdAt: { value: '2025-03-26T10:00:00Z' },
           createdBy: { value: [{ code: 'user1', name: 'User 1' }] },
           data: { value: JSON.stringify(version2.data) },
@@ -132,7 +132,7 @@ describe('VersionService', () => {
             $id: { value: '1001' },
             appId: { value: '1' },
             appName: { value: 'App 1' },
-            versionNumber: { value: '2' },
+            versionNumber: { value: 2 },  // 数値に変更
             createdAt: { value: '2025-03-26T10:00:00Z' },
             createdBy: { value: [{ code: 'user1', name: 'User 1' }] },
             data: { value: JSON.stringify(version2.data) },
@@ -142,7 +142,7 @@ describe('VersionService', () => {
             $id: { value: '1000' },
             appId: { value: '1' },
             appName: { value: 'App 1' },
-            versionNumber: { value: '1' },
+            versionNumber: { value: 1 },  // 数値に変更
             createdAt: { value: '2025-03-25T10:00:00Z' },
             createdBy: { value: [{ code: 'user1', name: 'User 1' }] },
             data: { value: JSON.stringify(version1.data) },
@@ -152,14 +152,14 @@ describe('VersionService', () => {
       }
       // レコードID指定の取得
       else if (query.includes('$id')) {
-        const recordId = query.match(/\$id = "([^"]+)"/)[1];
+        const recordId = query.match(/\$id = \"([^\"]+)\"/)[1];
         
         if (recordId === '1000') {
           return Promise.resolve([{
             $id: { value: '1000' },
             appId: { value: '1' },
             appName: { value: 'App 1' },
-            versionNumber: { value: '1' },
+            versionNumber: { value: 1 },  // 数値に変更
             createdAt: { value: '2025-03-25T10:00:00Z' },
             createdBy: { value: [{ code: 'user1', name: 'User 1' }] },
             data: { value: JSON.stringify(version1.data) },
@@ -170,7 +170,7 @@ describe('VersionService', () => {
             $id: { value: '1001' },
             appId: { value: '1' },
             appName: { value: 'App 1' },
-            versionNumber: { value: '2' },
+            versionNumber: { value: 2 },  // 数値に変更
             createdAt: { value: '2025-03-26T10:00:00Z' },
             createdBy: { value: [{ code: 'user1', name: 'User 1' }] },
             data: { value: JSON.stringify(version2.data) },
@@ -207,7 +207,7 @@ describe('VersionService', () => {
       );
       
       expect(version).not.toBeNull();
-      expect(version?.versionNumber).toBe('2');
+      expect(version?.versionNumber).toBe(2);  // 文字列ではなく数値になっていることを確認
       expect(version?.createdAt).toBe('2025-03-26T10:00:00Z');
       expect(version?.data.appInfo.description).toBe('Version 2');
     });
@@ -230,8 +230,8 @@ describe('VersionService', () => {
       );
       
       expect(history).toHaveLength(2);
-      expect(history[0].versionNumber).toBe('2');
-      expect(history[1].versionNumber).toBe('1');
+      expect(history[0].versionNumber).toBe(2);  // 文字列ではなく数値になっていることを確認
+      expect(history[1].versionNumber).toBe(1);  // 文字列ではなく数値になっていることを確認
     });
     
     it('limit引数を指定できること', async () => {
@@ -255,7 +255,7 @@ describe('VersionService', () => {
       );
       
       expect(summaries).toHaveLength(2);
-      expect(summaries[0].versionNumber).toBe('2');
+      expect(summaries[0].versionNumber).toBe(2);  // 文字列ではなく数値になっていることを確認
       expect(summaries[0].appName).toBe('App 1');
       expect(summaries[0].recordId).toBe('1001');
     });
@@ -301,12 +301,12 @@ describe('VersionService', () => {
         expect.objectContaining({
           appId: { value: '1' },
           appName: { value: 'App 1' },
-          versionNumber: { value: '3' },
+          versionNumber: { value: 3 },  // 数値で指定
           comment: { value: 'Test comment' }
         })
       );
       
-      expect(newVersion.versionNumber).toBe('3');
+      expect(newVersion.versionNumber).toBe(3);  // 文字列ではなく数値になっていることを確認
       expect(newVersion.comment).toBe('Test comment');
       expect(newVersion.data).toEqual(appDetails);
     });
@@ -341,7 +341,7 @@ describe('VersionService', () => {
       );
       
       expect(version).not.toBeNull();
-      expect(version?.versionNumber).toBe('1');
+      expect(version?.versionNumber).toBe(1);  // 文字列ではなく数値になっていることを確認
       expect(version?.createdAt).toBe('2025-03-25T10:00:00Z');
       expect(version?.data.appInfo.description).toBe('Version 1');
     });
@@ -375,8 +375,8 @@ describe('VersionService', () => {
     it('2つのバージョンを比較して結果を返すこと', async () => {
       const result = await versionService.compareVersions('1000', '1001');
       
-      expect(result.oldVersion.versionNumber).toBe('1');
-      expect(result.newVersion.versionNumber).toBe('2');
+      expect(result.oldVersion.versionNumber).toBe(1);  // 文字列ではなく数値になっていることを確認
+      expect(result.newVersion.versionNumber).toBe(2);  // 文字列ではなく数値になっていることを確認
       expect(result.diffs.length).toBeGreaterThan(0);
       expect(result.diffStats).toEqual(expect.objectContaining({
         total: expect.any(Number)
@@ -391,7 +391,7 @@ describe('VersionService', () => {
       const result = await versionService.restoreVersion('1000');
       
       expect(result.success).toBe(true);
-      expect(result.version.versionNumber).toBe('3');
+      expect(result.version.versionNumber).toBe(3);  // 文字列ではなく数値になっていることを確認
       expect(result.recordId).toBe('1000');
       expect(result.backupTimestamp).toBeDefined();
       
