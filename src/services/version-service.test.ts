@@ -118,75 +118,76 @@ describe('VersionService', () => {
   const { version1, version2 } = createSampleVersions();
 
   beforeEach(() => {
-    // レコード取得のモック実装
-    mockGetRecords.mockImplementation((appId, query) => {
-      // 最新バージョン取得
-      if (query.includes('limit 1')) {
-        return Promise.resolve([{
-          $id: { value: '1001' },
-          appId: { value: '1' },
-          appName: { value: 'App 1' },
-          versionNumber: { value: 2 },  // 数値に変更
-          createdAt: { value: '2025-03-26T10:00:00Z' },
-          createdBy: { value: [{ code: 'user1', name: 'User 1' }] },
-          data: { value: JSON.stringify(version2.data) },
-          comment: { value: 'Updated fields' }
-        }]);
+    // レコード取得のモック実装をリセット
+    mockGetRecords.mockReset();
+
+    // バージョン履歴用のモックレスポンス
+    const historyResponse = [
+      {
+        $id: { value: '1001' },
+        appId: { value: '1' },
+        appName: { value: 'App 1' },
+        versionNumber: { value: 2 },
+        createdAt: { value: '2025-03-26T10:00:00Z' },
+        createdBy: { value: [{ code: 'user1', name: 'User 1' }] },
+        data: { value: JSON.stringify(version2.data) },
+        comment: { value: 'Updated fields' }
+      },
+      {
+        $id: { value: '1000' },
+        appId: { value: '1' },
+        appName: { value: 'App 1' },
+        versionNumber: { value: 1 },
+        createdAt: { value: '2025-03-25T10:00:00Z' },
+        createdBy: { value: [{ code: 'user1', name: 'User 1' }] },
+        data: { value: JSON.stringify(version1.data) },
+        comment: { value: 'Initial version' }
       }
-      // バージョン履歴取得
-      else if (query.includes('order by')) {
-        return Promise.resolve([
-          {
-            $id: { value: '1001' },
-            appId: { value: '1' },
-            appName: { value: 'App 1' },
-            versionNumber: { value: 2 },  // 数値に変更
-            createdAt: { value: '2025-03-26T10:00:00Z' },
-            createdBy: { value: [{ code: 'user1', name: 'User 1' }] },
-            data: { value: JSON.stringify(version2.data) },
-            comment: { value: 'Updated fields' }
-          },
-          {
-            $id: { value: '1000' },
-            appId: { value: '1' },
-            appName: { value: 'App 1' },
-            versionNumber: { value: 1 },  // 数値に変更
-            createdAt: { value: '2025-03-25T10:00:00Z' },
-            createdBy: { value: [{ code: 'user1', name: 'User 1' }] },
-            data: { value: JSON.stringify(version1.data) },
-            comment: { value: 'Initial version' }
-          },
-        ]);
+    ];
+
+    // 最新バージョン用のモックレスポンス
+    const latestResponse = [
+      {
+        $id: { value: '1001' },
+        appId: { value: '1' },
+        appName: { value: 'App 1' },
+        versionNumber: { value: 2 },
+        createdAt: { value: '2025-03-26T10:00:00Z' },
+        createdBy: { value: [{ code: 'user1', name: 'User 1' }] },
+        data: { value: JSON.stringify(version2.data) },
+        comment: { value: 'Updated fields' }
+      }
+    ];
+
+    // テスト用にクエリに基づいて異なる応答を返す設定
+    mockGetRecords.mockImplementation((appId, query, fields) => {
+      // 最新バージョン取得（limit 1を含むクエリ）
+      if (query.includes('limit 1')) {
+        return Promise.resolve(latestResponse);
+      } 
+      // バージョン履歴取得（limit 10を含むクエリ）
+      else if (query.includes('limit 10')) {
+        return Promise.resolve(historyResponse);
+      }
+      // バージョン履歴取得（その他のlimitを含むクエリ）
+      else if (query.includes('limit')) {
+        return Promise.resolve(historyResponse);
       }
       // レコードID指定の取得
       else if (query.includes('$id')) {
         const recordId = query.match(/\$id = \"([^\"]+)\"/)[1];
         
         if (recordId === '1000') {
-          return Promise.resolve([{
-            $id: { value: '1000' },
-            appId: { value: '1' },
-            appName: { value: 'App 1' },
-            versionNumber: { value: 1 },  // 数値に変更
-            createdAt: { value: '2025-03-25T10:00:00Z' },
-            createdBy: { value: [{ code: 'user1', name: 'User 1' }] },
-            data: { value: JSON.stringify(version1.data) },
-            comment: { value: 'Initial version' }
-          }]);
+          return Promise.resolve([historyResponse[1]]);
         } else if (recordId === '1001') {
-          return Promise.resolve([{
-            $id: { value: '1001' },
-            appId: { value: '1' },
-            appName: { value: 'App 1' },
-            versionNumber: { value: 2 },  // 数値に変更
-            createdAt: { value: '2025-03-26T10:00:00Z' },
-            createdBy: { value: [{ code: 'user1', name: 'User 1' }] },
-            data: { value: JSON.stringify(version2.data) },
-            comment: { value: 'Updated fields' }
-          }]);
+          return Promise.resolve([historyResponse[0]]);
         } else {
           return Promise.resolve([]);
         }
+      }
+      // 日付範囲指定のクエリ
+      else if (query.includes('createdAt >=')) {
+        return Promise.resolve(historyResponse);
       }
       // その他のケース
       return Promise.resolve([]);
@@ -199,9 +200,6 @@ describe('VersionService', () => {
     });
     
     versionService = new VersionService();
-    
-    // 各テスト前にモックをリセット
-    vi.clearAllMocks();
   });
 
   afterEach(() => {
