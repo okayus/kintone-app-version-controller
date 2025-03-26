@@ -51,7 +51,9 @@ npm install
 │   │   └── version-service.test.ts # テストコード
 │   ├── types/                      # 型定義
 │   │   ├── index.ts                # 共通型定義
-│   │   └── fields.d.ts             # kintoneフィールド型定義（自動生成）
+│   │   ├── fields.d.ts             # kintoneフィールド型定義テンプレート
+│   │   ├── field374.d.ts           # アプリバージョン管理システム型定義（自動生成）
+│   │   └── field382.d.ts           # アプリ一覧型定義（自動生成）
 │   └── utils/                      # ユーティリティ
 │       ├── api-client.ts           # API通信クライアント
 │       └── api-client.test.ts      # テストコード
@@ -124,10 +126,38 @@ npx kintone-dts-gen --base-url https://your-domain.cybozu.com \
                      -u your-username \
                      -p your-password \
                      --app-id 123 \
-                     -o src/types/fields.d.ts
+                     -o src/types/field123.d.ts
 ```
 
-生成された型定義は `src/types/fields.d.ts` に保存され、アプリケーション内で自動的に使用されます。
+プロジェクトでは、2つのkintoneアプリの型定義ファイルを生成しています：
+
+- `field374.d.ts`: アプリバージョン管理システム(ID: 374)の型定義
+- `field382.d.ts`: アプリ一覧(ID: 382)の型定義
+
+これらのファイルは以下のコマンドで個別に生成またはアップデートできます：
+
+```bash
+# アプリバージョン管理システムの型定義を生成
+npx kintone-dts-gen --base-url https://your-domain.cybozu.com \
+                     -u your-username \
+                     -p your-password \
+                     --app-id 374 \
+                     -o src/types/field374.d.ts
+
+# アプリ一覧の型定義を生成
+npx kintone-dts-gen --base-url https://your-domain.cybozu.com \
+                     -u your-username \
+                     -p your-password \
+                     --app-id 382 \
+                     -o src/types/field382.d.ts
+```
+
+生成された型定義をアプリケーションで使用するには、次のように`kintone.types`名前空間を参照します：
+
+```typescript
+// アプリバージョン管理システムのレコードデータ型を使用
+const record: kintone.types.SavedFields = event.record;
+```
 
 ## ライセンス
 
