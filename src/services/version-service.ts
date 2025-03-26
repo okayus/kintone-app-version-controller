@@ -3,7 +3,6 @@
  * アプリのバージョン情報を管理するためのサービスクラス
  */
 import deepEqual from 'deep-equal';
-import * as diff from 'diff';
 
 import { ApiClient } from '../utils/api-client';
 import { AppDetail, VersionInfo, VersionDiff } from '../types';
@@ -194,41 +193,23 @@ export class VersionService {
    * @returns 差分情報
    */
   generateDiff(oldVersion: VersionInfo, newVersion: VersionInfo): VersionDiff[] {
-    // JSONに変換して比較
+    // 単純に文字列比較を行う
     const oldJson = JSON.stringify(oldVersion.data, null, 2);
     const newJson = JSON.stringify(newVersion.data, null, 2);
     
-    // 差分を計算
-    const changes = diff.diffJson(JSON.parse(oldJson), JSON.parse(newJson));
+    // 差分がない場合は空配列を返す
+    if (oldJson === newJson) {
+      return [];
+    }
     
-    // 差分情報のリストを作成
-    const diffs: VersionDiff[] = [];
-    
-    changes.forEach(change => {
-      if (change.added) {
-        diffs.push({
-          path: '', // 実際の実装ではJSONパスを特定する処理が必要
-          oldValue: null,
-          newValue: change.value,
-          changeType: 'added',
-        });
-      } else if (change.removed) {
-        diffs.push({
-          path: '', // 実際の実装ではJSONパスを特定する処理が必要
-          oldValue: change.value,
-          newValue: null,
-          changeType: 'removed',
-        });
-      } else if (change.value.trim() !== '') {
-        diffs.push({
-          path: '', // 実際の実装ではJSONパスを特定する処理が必要
-          oldValue: change.value,
-          newValue: change.value,
-          changeType: 'modified',
-        });
+    // 差分がある場合は単一の差分情報を返す
+    return [
+      {
+        path: '',
+        oldValue: oldVersion.data,
+        newValue: newVersion.data,
+        changeType: 'modified',
       }
-    });
-    
-    return diffs;
+    ];
   }
 }
