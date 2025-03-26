@@ -16,10 +16,11 @@ import {
   sleep
 } from './helpers';
 
-// 現在の日時をモック
+// diffモジュールをモック
+const createPatchMock = vi.fn().mockReturnValue('mock diff output');
 vi.mock('diff', () => {
   return {
-    createPatch: vi.fn().mockReturnValue('mock diff output'),
+    createPatch: createPatchMock
   };
 });
 
@@ -215,6 +216,7 @@ describe('generateTextDiff', () => {
     const diffText = generateTextDiff(text1, text2);
     
     expect(diffText).toBe('mock diff output');
+    expect(createPatchMock).toHaveBeenCalled();
   });
   
   it('コンテキスト行数を指定できること', () => {
@@ -223,7 +225,7 @@ describe('generateTextDiff', () => {
     
     generateTextDiff(text1, text2, 5);
     
-    expect(require('diff').createPatch).toHaveBeenCalledWith(
+    expect(createPatchMock).toHaveBeenCalledWith(
       'file',
       text1,
       text2,
