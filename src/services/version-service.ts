@@ -27,6 +27,7 @@ import {
   generateTextDiff,
   deepClone
 } from '../utils/helpers';
+import { normalizeVersionControlRecord, normalizeVersionRecord } from '../utils/kintone-types-helper';
 import { MemoryCache } from '../utils/cache';
 
 /**
@@ -164,25 +165,40 @@ export class VersionService implements IVersionService {
         return null;
       }
       
-      // レコードを正規化
-      const record = normalizeRecord(records[0]);
-      
-      // バージョン情報を作成
-      const versionInfo: VersionInfo = {
-        versionNumber: Number(record[VERSION_FIELD_CODES.VERSION_NUMBER]),  // 数値に変換
-        createdAt: record[VERSION_FIELD_CODES.CREATED_AT],
-        createdBy: {
-          code: record[VERSION_FIELD_CODES.CREATED_BY][0].code,
-          name: record[VERSION_FIELD_CODES.CREATED_BY][0].name || '',
-        },
-        data: JSON.parse(record[VERSION_FIELD_CODES.DATA]),
-        comment: record[VERSION_FIELD_CODES.COMMENT],
-      };
-      
-      // キャッシュに保存（30分）
-      this.cache.set(cacheKey, versionInfo, 30 * 60 * 1000);
-      
-      return versionInfo;
+      // レコードを正規化 - Kintone型定義を使った新しい方法
+      try {
+        const typedRecord = normalizeVersionRecord(records[0]);
+        const versionInfo: VersionInfo = {
+          versionNumber: typedRecord.versionNumber,
+          createdAt: typedRecord.createdAt,
+          createdBy: typedRecord.createdBy,
+          data: typedRecord.data || JSON.parse(records[0][VERSION_FIELD_CODES.DATA].value),
+          comment: typedRecord.comment,
+        };
+        
+        // キャッシュに保存（30分）
+        this.cache.set(cacheKey, versionInfo, 30 * 60 * 1000);
+        return versionInfo;
+      } catch (err) {
+        // 従来の方法で変換（フォールバック）
+        const record = normalizeRecord(records[0]);
+        
+        // バージョン情報を作成
+        const versionInfo: VersionInfo = {
+          versionNumber: Number(record[VERSION_FIELD_CODES.VERSION_NUMBER]),  // 数値に変換
+          createdAt: record[VERSION_FIELD_CODES.CREATED_AT],
+          createdBy: {
+            code: record[VERSION_FIELD_CODES.CREATED_BY][0].code,
+            name: record[VERSION_FIELD_CODES.CREATED_BY][0].name || '',
+          },
+          data: JSON.parse(record[VERSION_FIELD_CODES.DATA]),
+          comment: record[VERSION_FIELD_CODES.COMMENT],
+        };
+        
+        // キャッシュに保存（30分）
+        this.cache.set(cacheKey, versionInfo, 30 * 60 * 1000);
+        return versionInfo;
+      }
     } catch (error) {
       console.error(`最新バージョン取得(アプリID: ${appId})中にエラーが発生しました`, error);
       return null;
@@ -210,26 +226,43 @@ export class VersionService implements IVersionService {
       // レコードを取得
       const records = await this.apiClient.getRecords(APP_IDS.APP_VERSION_CONTROL, query);
       
-      // バージョン情報のリストを作成
-      const versions = records.map(record => {
-        const normalizedRecord = normalizeRecord(record);
+      // Kintone型定義を使った新しい方法でバージョン情報のリストを作成
+      try {
+        const versions = records.map(record => {
+          const typedRecord = normalizeVersionRecord(record);
+          return {
+            versionNumber: typedRecord.versionNumber,
+            createdAt: typedRecord.createdAt,
+            createdBy: typedRecord.createdBy,
+            data: typedRecord.data || JSON.parse(record[VERSION_FIELD_CODES.DATA].value), 
+            comment: typedRecord.comment,
+          };
+        });
         
-        return {
-          versionNumber: Number(normalizedRecord[VERSION_FIELD_CODES.VERSION_NUMBER]),  // 数値に変換
-          createdAt: normalizedRecord[VERSION_FIELD_CODES.CREATED_AT],
-          createdBy: {
-            code: normalizedRecord[VERSION_FIELD_CODES.CREATED_BY][0].code,
-            name: normalizedRecord[VERSION_FIELD_CODES.CREATED_BY][0].name || '',
-          },
-          data: JSON.parse(normalizedRecord[VERSION_FIELD_CODES.DATA]),
-          comment: normalizedRecord[VERSION_FIELD_CODES.COMMENT],
-        };
-      });
-      
-      // キャッシュに保存（10分）
-      this.cache.set(cacheKey, versions, 10 * 60 * 1000);
-      
-      return versions;
+        // キャッシュに保存（10分）
+        this.cache.set(cacheKey, versions, 10 * 60 * 1000);
+        return versions;
+      } catch (err) {
+        // 従来の方法で変換（フォールバック）
+        const versions = records.map(record => {
+          const normalizedRecord = normalizeRecord(record);
+          
+          return {
+            versionNumber: Number(normalizedRecord[VERSION_FIELD_CODES.VERSION_NUMBER]),  // 数値に変換
+            createdAt: normalizedRecord[VERSION_FIELD_CODES.CREATED_AT],
+            createdBy: {
+              code: normalizedRecord[VERSION_FIELD_CODES.CREATED_BY][0].code,
+              name: normalizedRecord[VERSION_FIELD_CODES.CREATED_BY][0].name || '',
+            },
+            data: JSON.parse(normalizedRecord[VERSION_FIELD_CODES.DATA]),
+            comment: normalizedRecord[VERSION_FIELD_CODES.COMMENT],
+          };
+        });
+        
+        // キャッシュに保存（10分）
+        this.cache.set(cacheKey, versions, 10 * 60 * 1000);
+        return versions;
+      }
     } catch (error) {
       console.error(`バージョン履歴取得(アプリID: ${appId})中にエラーが発生しました`, error);
       return [];
@@ -267,30 +300,52 @@ export class VersionService implements IVersionService {
       // レコードを取得（詳細データは取得しない）
       const records = await this.apiClient.getRecords(APP_IDS.APP_VERSION_CONTROL, query, fields);
       
-      // バージョン概要のリストを作成
-      const summaries = records.map(record => {
-        const normalizedRecord = normalizeRecord(record);
+      // Kintone型定義を使った新しい方法でバージョン概要のリストを作成
+      try {
+        const summaries = records.map(record => {
+          const typedRecord = normalizeVersionRecord(record, false);
+          
+          const summary: VersionSummary = {
+            versionNumber: typedRecord.versionNumber,
+            createdAt: typedRecord.createdAt,
+            createdBy: typedRecord.createdBy,
+            comment: typedRecord.comment,
+            appId: typedRecord.appId,
+            appName: typedRecord.appName,
+            recordId: typedRecord.recordId,
+          };
+          
+          return summary;
+        });
         
-        const summary: VersionSummary = {
-          versionNumber: Number(normalizedRecord[VERSION_FIELD_CODES.VERSION_NUMBER]),  // 数値に変換
-          createdAt: normalizedRecord[VERSION_FIELD_CODES.CREATED_AT],
-          createdBy: {
-            code: normalizedRecord[VERSION_FIELD_CODES.CREATED_BY][0].code,
-            name: normalizedRecord[VERSION_FIELD_CODES.CREATED_BY][0].name || '',
-          },
-          comment: normalizedRecord[VERSION_FIELD_CODES.COMMENT],
-          appId: normalizedRecord[VERSION_FIELD_CODES.APP_ID],
-          appName: normalizedRecord[VERSION_FIELD_CODES.APP_NAME],
-          recordId: record.$id.value, // レコードIDも保存
-        };
+        // キャッシュに保存（5分）
+        this.cache.set(cacheKey, summaries, 5 * 60 * 1000);
+        return summaries;
+      } catch (err) {
+        // 従来の方法で変換（フォールバック）
+        const summaries = records.map(record => {
+          const normalizedRecord = normalizeRecord(record);
+          
+          const summary: VersionSummary = {
+            versionNumber: Number(normalizedRecord[VERSION_FIELD_CODES.VERSION_NUMBER]),  // 数値に変換
+            createdAt: normalizedRecord[VERSION_FIELD_CODES.CREATED_AT],
+            createdBy: {
+              code: normalizedRecord[VERSION_FIELD_CODES.CREATED_BY][0].code,
+              name: normalizedRecord[VERSION_FIELD_CODES.CREATED_BY][0].name || '',
+            },
+            comment: normalizedRecord[VERSION_FIELD_CODES.COMMENT],
+            appId: normalizedRecord[VERSION_FIELD_CODES.APP_ID],
+            appName: normalizedRecord[VERSION_FIELD_CODES.APP_NAME],
+            recordId: record.$id.value, // レコードIDも保存
+          };
+          
+          return summary;
+        });
         
-        return summary;
-      });
-      
-      // キャッシュに保存（5分）
-      this.cache.set(cacheKey, summaries, 5 * 60 * 1000);
-      
-      return summaries;
+        // キャッシュに保存（5分）
+        this.cache.set(cacheKey, summaries, 5 * 60 * 1000);
+        return summaries;
+      }
     } catch (error) {
       console.error(`バージョン概要一覧取得(アプリID: ${appId})中にエラーが発生しました`, error);
       return [];
@@ -323,25 +378,41 @@ export class VersionService implements IVersionService {
         return null;
       }
       
-      // レコードを正規化
-      const normalizedRecord = normalizeRecord(record[0]);
-      
-      // バージョン情報を作成
-      const versionInfo: VersionInfo = {
-        versionNumber: Number(normalizedRecord[VERSION_FIELD_CODES.VERSION_NUMBER]),  // 数値に変換
-        createdAt: normalizedRecord[VERSION_FIELD_CODES.CREATED_AT],
-        createdBy: {
-          code: normalizedRecord[VERSION_FIELD_CODES.CREATED_BY][0].code,
-          name: normalizedRecord[VERSION_FIELD_CODES.CREATED_BY][0].name || '',
-        },
-        data: JSON.parse(normalizedRecord[VERSION_FIELD_CODES.DATA]),
-        comment: normalizedRecord[VERSION_FIELD_CODES.COMMENT],
-      };
-      
-      // キャッシュに保存（30分）
-      this.cache.set(cacheKey, versionInfo, 30 * 60 * 1000);
-      
-      return versionInfo;
+      // Kintone型定義を使った新しい方法でバージョン情報を作成
+      try {
+        const typedRecord = normalizeVersionRecord(record[0]);
+        
+        const versionInfo: VersionInfo = {
+          versionNumber: typedRecord.versionNumber,
+          createdAt: typedRecord.createdAt,
+          createdBy: typedRecord.createdBy,
+          data: typedRecord.data || JSON.parse(record[0][VERSION_FIELD_CODES.DATA].value),
+          comment: typedRecord.comment,
+        };
+        
+        // キャッシュに保存（30分）
+        this.cache.set(cacheKey, versionInfo, 30 * 60 * 1000);
+        return versionInfo;
+      } catch (err) {
+        // 従来の方法で変換（フォールバック）
+        const normalizedRecord = normalizeRecord(record[0]);
+        
+        // バージョン情報を作成
+        const versionInfo: VersionInfo = {
+          versionNumber: Number(normalizedRecord[VERSION_FIELD_CODES.VERSION_NUMBER]),  // 数値に変換
+          createdAt: normalizedRecord[VERSION_FIELD_CODES.CREATED_AT],
+          createdBy: {
+            code: normalizedRecord[VERSION_FIELD_CODES.CREATED_BY][0].code,
+            name: normalizedRecord[VERSION_FIELD_CODES.CREATED_BY][0].name || '',
+          },
+          data: JSON.parse(normalizedRecord[VERSION_FIELD_CODES.DATA]),
+          comment: normalizedRecord[VERSION_FIELD_CODES.COMMENT],
+        };
+        
+        // キャッシュに保存（30分）
+        this.cache.set(cacheKey, versionInfo, 30 * 60 * 1000);
+        return versionInfo;
+      }
     } catch (error) {
       console.error(`バージョン情報取得(レコードID: ${recordId})中にエラーが発生しました`, error);
       return null;
@@ -513,26 +584,43 @@ export class VersionService implements IVersionService {
       // レコードを取得
       const records = await this.apiClient.getRecords(APP_IDS.APP_VERSION_CONTROL, query);
       
-      // バージョン情報のリストを作成
-      const versions = records.map(record => {
-        const normalizedRecord = normalizeRecord(record);
+      // バージョン情報のリストを作成 - Kintone型定義を使った新しい方法
+      try {
+        const versions = records.map(record => {
+          const typedRecord = normalizeVersionRecord(record);
+          return {
+            versionNumber: typedRecord.versionNumber,
+            createdAt: typedRecord.createdAt,
+            createdBy: typedRecord.createdBy,
+            data: typedRecord.data || JSON.parse(record[VERSION_FIELD_CODES.DATA].value),
+            comment: typedRecord.comment,
+          };
+        });
         
-        return {
-          versionNumber: Number(normalizedRecord[VERSION_FIELD_CODES.VERSION_NUMBER]),  // 数値に変換
-          createdAt: normalizedRecord[VERSION_FIELD_CODES.CREATED_AT],
-          createdBy: {
-            code: normalizedRecord[VERSION_FIELD_CODES.CREATED_BY][0].code,
-            name: normalizedRecord[VERSION_FIELD_CODES.CREATED_BY][0].name || '',
-          },
-          data: JSON.parse(normalizedRecord[VERSION_FIELD_CODES.DATA]),
-          comment: normalizedRecord[VERSION_FIELD_CODES.COMMENT],
-        };
-      });
-      
-      // キャッシュに保存（10分）
-      this.cache.set(cacheKey, versions, 10 * 60 * 1000);
-      
-      return versions;
+        // キャッシュに保存（10分）
+        this.cache.set(cacheKey, versions, 10 * 60 * 1000);
+        return versions;
+      } catch (err) {
+        // 従来の方法で変換（フォールバック）
+        const versions = records.map(record => {
+          const normalizedRecord = normalizeRecord(record);
+          
+          return {
+            versionNumber: Number(normalizedRecord[VERSION_FIELD_CODES.VERSION_NUMBER]),  // 数値に変換
+            createdAt: normalizedRecord[VERSION_FIELD_CODES.CREATED_AT],
+            createdBy: {
+              code: normalizedRecord[VERSION_FIELD_CODES.CREATED_BY][0].code,
+              name: normalizedRecord[VERSION_FIELD_CODES.CREATED_BY][0].name || '',
+            },
+            data: JSON.parse(normalizedRecord[VERSION_FIELD_CODES.DATA]),
+            comment: normalizedRecord[VERSION_FIELD_CODES.COMMENT],
+          };
+        });
+        
+        // キャッシュに保存（10分）
+        this.cache.set(cacheKey, versions, 10 * 60 * 1000);
+        return versions;
+      }
     } catch (error) {
       console.error(`日付範囲のバージョン取得中にエラーが発生しました`, error);
       return [];
