@@ -234,7 +234,7 @@ export interface SchemaComparisonResult {
  * バージョン情報
  */
 export interface VersionInfo {
-  versionNumber: string;
+  versionNumber: number;  // 文字列から数値に変更
   createdAt: string;
   createdBy: {
     code: string;
@@ -249,7 +249,7 @@ export interface VersionInfo {
  * バージョン履歴一覧表示用の軽量なバージョン情報
  */
 export interface VersionSummary {
-  versionNumber: string;
+  versionNumber: number;  // 文字列から数値に変更
   createdAt: string;
   createdBy: {
     code: string;
