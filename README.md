@@ -114,10 +114,10 @@ npx kintone-dts-gen --base-url https://your-domain.cybozu.com \
                      -u your-username \
                      -p your-password \
                      --app-id 123 \
-                     -o src/types/fields.d.ts
+                     -o src/types/fields[appId].d.ts
 ```
 
-生成された型定義は `src/types/fields.d.ts` に保存され、アプリケーション内で自動的に使用されます。
+生成された型定義は `src/types/fields[appId].d.ts` に保存され、アプリケーション内で自動的に使用されます。
 
 ## ライセンス
 
