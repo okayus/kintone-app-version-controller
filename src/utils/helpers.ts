@@ -68,26 +68,21 @@ export function truncateString(str: string, length: number, suffix = '...'): str
 }
 
 /**
- * バージョン番号を生成する（メジャー.マイナー.パッチ）
+ * バージョン番号を生成する（自然数のインクリメント）
  * @param currentVersion 現在のバージョン
- * @param type 更新タイプ
  * @returns 新しいバージョン番号
  */
-export function generateVersionNumber(
-  currentVersion = '0.0.0',
-  type: 'major' | 'minor' | 'patch' = 'patch'
-): string {
-  const [major, minor, patch] = currentVersion.split('.').map(Number);
+export function generateVersionNumber(currentVersion = '0'): string {
+  // 文字列を数値に変換
+  const versionNum = parseInt(currentVersion, 10);
   
-  switch (type) {
-    case 'major':
-      return `${major + 1}.0.0`;
-    case 'minor':
-      return `${major}.${minor + 1}.0`;
-    case 'patch':
-    default:
-      return `${major}.${minor}.${patch + 1}`;
+  // NaNの場合は1を返す
+  if (isNaN(versionNum)) {
+    return '1';
   }
+  
+  // インクリメントして文字列に戻す
+  return (versionNum + 1).toString();
 }
 
 /**
