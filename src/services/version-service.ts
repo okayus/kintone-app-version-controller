@@ -102,7 +102,7 @@ export class VersionService implements IVersionService {
       // バージョン番号を生成
       const versionNumber = latestVersion
         ? generateVersionNumber(latestVersion.versionNumber)
-        : '1';
+        : 1;
       
       // 現在のユーザー情報
       const currentUser = getCurrentUser();
@@ -154,7 +154,7 @@ export class VersionService implements IVersionService {
       }
       
       // 最新バージョンを取得するクエリを作成
-      const query = `${VERSION_FIELD_CODES.APP_ID} = "${appId}" order by ${VERSION_FIELD_CODES.CREATED_AT} desc limit 1`;
+      const query = `${VERSION_FIELD_CODES.APP_ID} = \"${appId}\" order by ${VERSION_FIELD_CODES.CREATED_AT} desc limit 1`;
       
       // レコードを取得
       const records = await this.apiClient.getRecords(APP_IDS.APP_VERSION_CONTROL, query);
@@ -169,7 +169,7 @@ export class VersionService implements IVersionService {
       
       // バージョン情報を作成
       const versionInfo: VersionInfo = {
-        versionNumber: record[VERSION_FIELD_CODES.VERSION_NUMBER],
+        versionNumber: Number(record[VERSION_FIELD_CODES.VERSION_NUMBER]),  // 数値に変換
         createdAt: record[VERSION_FIELD_CODES.CREATED_AT],
         createdBy: {
           code: record[VERSION_FIELD_CODES.CREATED_BY][0].code,
@@ -205,7 +205,7 @@ export class VersionService implements IVersionService {
       }
       
       // バージョン履歴を取得するクエリを作成
-      const query = `${VERSION_FIELD_CODES.APP_ID} = "${appId}" order by ${VERSION_FIELD_CODES.CREATED_AT} desc limit ${limit}`;
+      const query = `${VERSION_FIELD_CODES.APP_ID} = \"${appId}\" order by ${VERSION_FIELD_CODES.CREATED_AT} desc limit ${limit}`;
       
       // レコードを取得
       const records = await this.apiClient.getRecords(APP_IDS.APP_VERSION_CONTROL, query);
@@ -215,7 +215,7 @@ export class VersionService implements IVersionService {
         const normalizedRecord = normalizeRecord(record);
         
         return {
-          versionNumber: normalizedRecord[VERSION_FIELD_CODES.VERSION_NUMBER],
+          versionNumber: Number(normalizedRecord[VERSION_FIELD_CODES.VERSION_NUMBER]),  // 数値に変換
           createdAt: normalizedRecord[VERSION_FIELD_CODES.CREATED_AT],
           createdBy: {
             code: normalizedRecord[VERSION_FIELD_CODES.CREATED_BY][0].code,
@@ -262,7 +262,7 @@ export class VersionService implements IVersionService {
       ];
       
       // バージョン履歴を取得するクエリを作成
-      const query = `${VERSION_FIELD_CODES.APP_ID} = "${appId}" order by ${VERSION_FIELD_CODES.CREATED_AT} desc limit ${limit}`;
+      const query = `${VERSION_FIELD_CODES.APP_ID} = \"${appId}\" order by ${VERSION_FIELD_CODES.CREATED_AT} desc limit ${limit}`;
       
       // レコードを取得（詳細データは取得しない）
       const records = await this.apiClient.getRecords(APP_IDS.APP_VERSION_CONTROL, query, fields);
@@ -272,7 +272,7 @@ export class VersionService implements IVersionService {
         const normalizedRecord = normalizeRecord(record);
         
         const summary: VersionSummary = {
-          versionNumber: normalizedRecord[VERSION_FIELD_CODES.VERSION_NUMBER],
+          versionNumber: Number(normalizedRecord[VERSION_FIELD_CODES.VERSION_NUMBER]),  // 数値に変換
           createdAt: normalizedRecord[VERSION_FIELD_CODES.CREATED_AT],
           createdBy: {
             code: normalizedRecord[VERSION_FIELD_CODES.CREATED_BY][0].code,
@@ -314,7 +314,7 @@ export class VersionService implements IVersionService {
       // レコードを取得
       const record = await this.apiClient.getRecords(
         APP_IDS.APP_VERSION_CONTROL, 
-        `$id = "${recordId}"`,
+        `$id = \"${recordId}\"`,
         [] // すべてのフィールドを取得
       );
       
@@ -328,7 +328,7 @@ export class VersionService implements IVersionService {
       
       // バージョン情報を作成
       const versionInfo: VersionInfo = {
-        versionNumber: normalizedRecord[VERSION_FIELD_CODES.VERSION_NUMBER],
+        versionNumber: Number(normalizedRecord[VERSION_FIELD_CODES.VERSION_NUMBER]),  // 数値に変換
         createdAt: normalizedRecord[VERSION_FIELD_CODES.CREATED_AT],
         createdBy: {
           code: normalizedRecord[VERSION_FIELD_CODES.CREATED_BY][0].code,
@@ -505,9 +505,9 @@ export class VersionService implements IVersionService {
       }
       
       // 日付範囲を指定したクエリを作成
-      const query = `${VERSION_FIELD_CODES.APP_ID} = "${appId}" and ` +
-        `${VERSION_FIELD_CODES.CREATED_AT} >= "${startDate}" and ` +
-        `${VERSION_FIELD_CODES.CREATED_AT} <= "${endDate}" ` +
+      const query = `${VERSION_FIELD_CODES.APP_ID} = \"${appId}\" and ` +
+        `${VERSION_FIELD_CODES.CREATED_AT} >= \"${startDate}\" and ` +
+        `${VERSION_FIELD_CODES.CREATED_AT} <= \"${endDate}\" ` +
         `order by ${VERSION_FIELD_CODES.CREATED_AT} desc`;
       
       // レコードを取得
@@ -518,7 +518,7 @@ export class VersionService implements IVersionService {
         const normalizedRecord = normalizeRecord(record);
         
         return {
-          versionNumber: normalizedRecord[VERSION_FIELD_CODES.VERSION_NUMBER],
+          versionNumber: Number(normalizedRecord[VERSION_FIELD_CODES.VERSION_NUMBER]),  // 数値に変換
           createdAt: normalizedRecord[VERSION_FIELD_CODES.CREATED_AT],
           createdBy: {
             code: normalizedRecord[VERSION_FIELD_CODES.CREATED_BY][0].code,
