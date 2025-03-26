@@ -6,6 +6,24 @@ import { VersionService } from './version-service';
 import { ApiClient } from '../utils/api-client';
 import { VERSION_FIELD_CODES } from '../constants';
 
+// VERSION_FIELD_CODESをモック
+vi.mock('../constants', () => {
+  return {
+    APP_IDS: {
+      APP_VERSION_CONTROL: 374
+    },
+    VERSION_FIELD_CODES: {
+      APP_ID: 'appId',
+      APP_NAME: 'appName',
+      VERSION_NUMBER: 'versionNumber',
+      CREATED_AT: 'createdAt',
+      CREATED_BY: 'createdBy',
+      DATA: 'data',
+      COMMENT: 'comment'
+    }
+  };
+});
+
 // ApiClientのモック
 vi.mock('../utils/api-client', () => {
   return {
@@ -14,7 +32,7 @@ vi.mock('../utils/api-client', () => {
         getRecords: vi.fn().mockResolvedValue([
           {
             appId: { value: '1' },
-            version: { value: '1' },
+            versionNumber: { value: '1' },
             data: { value: JSON.stringify({ name: 'App 1' }) },
             comment: { value: 'Test comment' },
             createdAt: { value: '2025-03-27T00:00:00Z' },
