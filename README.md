@@ -1,10 +1,10 @@
 # kintone アプリバージョン管理システム
 
-kintoneアプリの構成情報を自動的にバックアップし、バージョン管理するためのカスタマイズJavaScriptです。
+kintoneアプリの構成情報をバックアップし、バージョン管理するためのカスタマイズです。
 
 ## 概要
 
-このプロジェクトは、kintoneアプリの設定情報を定期的に取得し、変更があった場合に新しいバージョンとして記録するシステムです。アプリ設定の変更履歴を追跡し、必要に応じて過去の設定に戻すことができます。
+このプロジェクトは、kintoneアプリの設定情報を取得し、変更があった場合に新しいバージョンとして記録するシステムです。
 
 ## 機能
 
@@ -41,19 +41,21 @@ npm install
 ## プロジェクト構成
 
 ```
-├── src/                     # ソースコード
-│   ├── app-list-backup.js   # アプリ一覧バックアップメイン処理
-│   ├── services/            # サービス層
-│   │   ├── app-service.js   # アプリ情報取得サービス
-│   │   └── version-service.js # バージョン管理サービス
-│   └── utils/               # ユーティリティ
-│       ├── api-client.js    # API通信クライアント
-│       └── diff-utils.js    # 差分検出ユーティリティ
-├── dist/                    # ビルド成果物
-├── config/                  # 設定ファイル
-├── test/                    # テストコード
-├── REQUIREMENTS.md          # 要件定義書
-└── README.md                # プロジェクト説明
+├── src/                            # ソースコード
+│   ├── app-list-backup.ts          # アプリ一覧バックアップメイン処理
+│   ├── app-list-backup.test.ts     # テストコード
+│   ├── services/                   # サービス層
+│   │   ├── app-service.ts          # アプリ情報取得サービス
+│   │   ├── app-service.test.ts     # テストコード
+│   │   ├── version-service.ts      # バージョン管理サービス
+│   │   └── version-service.test.ts # テストコード
+│   └── utils/                      # ユーティリティ
+│       ├── api-client.ts           # API通信クライアント
+│       └── api-client.tes.ts       # テストコード
+├── dist/                           # ビルド成果物
+├── docs/                           # ドキュメント
+│   └── requirements.md             # 要件定義書
+└── README.md                       # プロジェクト説明
 ```
 
 ## 使い方
@@ -67,11 +69,11 @@ npm install
 ### ビルド方法
 
 ```bash
-# 開発用ビルド（ソース監視）
-npm run dev
+# 開発用ビルド
+npm run build:dev
 
 # 本番用ビルド
-npm run build
+npm run build:prod
 ```
 
 ## ライセンス
@@ -80,4 +82,4 @@ MIT License
 
 ## 関連資料
 
-- [要件定義書](./REQUIREMENTS.md)
+- [要件定義書](./docs/requirements.md)
