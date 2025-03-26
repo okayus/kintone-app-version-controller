@@ -62,9 +62,10 @@ vi.mock('./app-service', () => {
 });
 
 // deep-equalをモック
+const deepEqualMock = vi.fn().mockImplementation(() => false);
 vi.mock('deep-equal', () => {
   return {
-    default: vi.fn().mockImplementation(() => false) // デフォルトはfalseを返す
+    default: deepEqualMock
   };
 });
 
@@ -283,16 +284,11 @@ describe('VersionService', () => {
     
     it('変更がない場合はfalseを返すこと', async () => {
       // deep-equalのモックを一時的に変更
-      const deepEqual = require('deep-equal').default;
-      const originalImpl = deepEqual.mockImplementation;
-      deepEqual.mockImplementation(() => true);
+      deepEqualMock.mockReturnValueOnce(true);
       
       const appDetails = { ...version2.data };
       const hasChanges = await versionService.compareAppVersions(1, appDetails);
       expect(hasChanges).toBe(false);
-      
-      // モックを元に戻す
-      deepEqual.mockImplementation(originalImpl);
     });
   });
 
