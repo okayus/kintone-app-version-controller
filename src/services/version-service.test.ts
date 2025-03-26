@@ -33,7 +33,7 @@ vi.mock('../utils/api-client', () => {
           {
             appId: { value: '1' },
             versionNumber: { value: '1' },
-            data: { value: JSON.stringify({ name: 'App 1' }) },
+            data: { value: JSON.stringify({ appInfo: { name: 'App 1' } }) },
             comment: { value: 'Test comment' },
             createdAt: { value: '2025-03-27T00:00:00Z' },
             createdBy: { value: [{ code: 'user1', name: 'User 1' }] }
@@ -49,7 +49,11 @@ vi.mock('../utils/api-client', () => {
 vi.mock('deep-equal', () => {
   return {
     default: vi.fn().mockImplementation((a, b) => {
-      return a.name === b.name;
+      // Compare appInfo.name if exists
+      if (a && a.appInfo && b && b.appInfo) {
+        return a.appInfo.name === b.appInfo.name;
+      }
+      return false;
     })
   };
 });
