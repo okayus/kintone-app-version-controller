@@ -74,17 +74,14 @@ export function truncateString(str: string, length: number, suffix = '...'): str
  * @param currentVersion 現在のバージョン
  * @returns 新しいバージョン番号
  */
-export function generateVersionNumber(currentVersion = '0'): string {
-  // 文字列を数値に変換
-  const versionNum = parseInt(currentVersion, 10);
-  
-  // NaNの場合は1を返す
-  if (isNaN(versionNum)) {
-    return '1';
+export function generateVersionNumber(currentVersion = 0): number {
+  // 数値以外の場合は1を返す
+  if (typeof currentVersion !== 'number' || isNaN(currentVersion)) {
+    return 1;
   }
   
-  // インクリメントして文字列に戻す
-  return (versionNum + 1).toString();
+  // インクリメントして返す
+  return currentVersion + 1;
 }
 
 /**
@@ -164,12 +161,14 @@ export function generateJsonDiff(oldObj: any, newObj: any): VersionDiff[] {
   }
   
   // 簡易的な差分検出
-  return [{
-    path: '',
-    oldValue: oldObj,
-    newValue: newObj,
-    changeType: 'modified'
-  }];
+  return [
+    {
+      path: '',
+      oldValue: oldObj,
+      newValue: newObj,
+      changeType: 'modified'
+    }
+  ];
 }
 
 /**
